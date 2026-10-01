@@ -7,10 +7,17 @@ on:
 jobs:
   gated-execution:
     name: Approved Deployment / Integration
-    # Only run if the 'approved' label is present on the PR
-    if: contains(github.event.pull_request.labels.*.name, 'approved')
     runs-on: ubuntu-latest
     steps:
+      - name: Check approval label
+        run: |
+          if [ "$HAS_LABEL" != "true" ]; then
+            echo "Merge blocked: add the 'approved' label to proceed"
+            exit 1
+          fi
+        env:
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'approved') }}
+
       - name: Check out PR code
         uses: actions/checkout@v4
 
