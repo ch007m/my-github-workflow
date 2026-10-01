@@ -1,6 +1,6 @@
 # my-github-workflow
 
-Project to test/practice GitHub workflow. Test 020
+Project to test/practice GitHub workflow. Test 022
 
 ## PR test approval
 
