@@ -19,7 +19,8 @@ jobs:
           **Available commands:**
           | Command | Description |
           |---------|-------------|
-          | `/ok-to-test` | Run tests and package (maintainers only) |
+          | `/ok-to-test` | Approve and run tests + package (maintainers only). Persists: new pushes auto-trigger tests. |
+          | `/stop-test` | Remove test approval (maintainers only) |
           | `/help` | Show this help message |
           EOF
           )"
@@ -41,7 +42,8 @@ jobs:
           **Available commands:**
           | Command | Description |
           |---------|-------------|
-          | `/ok-to-test` | Run tests and package (maintainers only) |
+          | `/ok-to-test` | Approve and run tests + package (maintainers only). Persists: new pushes auto-trigger tests. |
+          | `/stop-test` | Remove test approval (maintainers only) |
           | `/help` | Show this help message |
           EOF
           )"
@@ -70,7 +72,7 @@ jobs:
         env:
           FOO: ${{ secrets.FOO }}
 
-  test-package:
+  approve-and-test:
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'issue_comment' &&
@@ -78,6 +80,14 @@ jobs:
       startsWith(github.event.comment.body, '/ok-to-test') &&
       contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association)
     steps:
+      - name: Add ok-to-test label
+        run: |
+          gh pr edit ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --add-label "ok-to-test"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Get PR branch
         id: pr
         run: |
@@ -96,15 +106,42 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Check secrets
+      - name: Run tests
+        run: mvn test
+
+      - name: Run package
+        run: mvn package
+
+  revoke-approval:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, '/stop-test') &&
+      contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association)
+    steps:
+      - name: Remove ok-to-test label
         run: |
-          if [ -n "$FOO" ]; then
-            echo "FOO secret is set"
-          else
-            echo "FOO secret is NOT set"
-          fi
+          gh pr edit ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --remove-label "ok-to-test"
         env:
-          FOO: ${{ secrets.FOO }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-on-push:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'pull_request' &&
+      github.event.action == 'synchronize' &&
+      contains(github.event.pull_request.labels.*.name, 'ok-to-test')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
 
       - name: Run tests
         run: mvn test
