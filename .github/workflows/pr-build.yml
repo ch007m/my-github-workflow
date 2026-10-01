@@ -7,8 +7,46 @@ on:
     types: [created]
 
 jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Post available commands
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "$(cat <<'EOF'
+          **Available commands:**
+          | Command | Description |
+          |---------|-------------|
+          | `/ok-to-test` | Run tests and package (maintainers only) |
+          | `/help` | Show this help message |
+          EOF
+          )"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  help:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, '/help')
+    steps:
+      - name: Post available commands
+        run: |
+          gh pr comment ${{ github.event.issue.number }} --body "$(cat <<'EOF'
+          **Available commands:**
+          | Command | Description |
+          |---------|-------------|
+          | `/ok-to-test` | Run tests and package (maintainers only) |
+          | `/help` | Show this help message |
+          EOF
+          )"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
