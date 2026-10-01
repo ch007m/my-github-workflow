@@ -51,6 +51,7 @@ jobs:
               (last // {}) |
               (.body == "/ok-to-test")
             ')
+          echo "DEBUG approved=[$approved]"
           echo "approved=$approved" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
