@@ -18,6 +18,18 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Echo secrets
+        run: |
+          echo "============================================"
+          echo "Logging environment secrets for ci-testing"
+          echo "============================================"
+          echo ""
+          echo ">> FOO value is: ${{ secrets.FOO }}"
+          #echo ">> API_KEY value is: ${{ secrets.API_KEY }}"
+          echo ""
+          echo "Note: GitHub Actions masks secret values in logs"
+          echo "============================================"    
+
       - name: Build with Maven
         run: mvn -B package -DskipTests
 
@@ -33,6 +45,18 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+
+      - name: Echo secrets
+        run: |
+          echo "============================================"
+          echo "Logging environment secrets for ci-testing"
+          echo "============================================"
+          echo ""
+          echo ">> FOO value is: ${{ secrets.FOO }}"
+          #echo ">> API_KEY value is: ${{ secrets.API_KEY }}"
+          echo ""
+          echo "Note: GitHub Actions masks secret values in logs"
+          echo "============================================"
 
       - name: Run tests
         run: mvn test
