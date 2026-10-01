@@ -7,8 +7,50 @@ on:
     types: [created]
 
 jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Post available commands
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "$(cat <<'EOF'
+          **Available commands:**
+          | Command | Description |
+          |---------|-------------|
+          | `/ok-to-test` | Run tests and package (maintainers only) |
+          | `/help` | Show this help message |
+          EOF
+          )"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  help:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, '/help')
+    steps:
+      - name: Post available commands
+        run: |
+          gh pr comment ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --body "$(cat <<'EOF'
+          **Available commands:**
+          | Command | Description |
+          |---------|-------------|
+          | `/ok-to-test` | Run tests and package (maintainers only) |
+          | `/help` | Show this help message |
+          EOF
+          )"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
@@ -39,7 +81,7 @@ jobs:
       - name: Get PR branch
         id: pr
         run: |
-          PR_REF=$(gh pr view ${{ github.event.issue.number }} --json headRefName --jq '.headRefName')
+          PR_REF=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefName --jq '.headRefName')
           echo "ref=$PR_REF" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
