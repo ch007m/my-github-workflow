@@ -16,5 +16,15 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Check secrets
+        run: |
+          if [ -n "$FOO" ]; then
+            echo "FOO secret is set"
+          else
+            echo "FOO secret is NOT set"
+          fi
+        env:
+          FOO: ${{ secrets.FOO }}
+
       - name: Build with Maven
         run: mvn -B package -DskipTests
