@@ -1,3 +1,3 @@
 # my-github-workflow
 
-Project to test/practice GitHub workflow. Test 001
+Project to test/practice GitHub workflow. Test 002
