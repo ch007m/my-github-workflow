@@ -1,13 +1,38 @@
 name: PR Commands
 
 on:
+  pull_request:
+    branches: [main]
+    types: [opened]
   issue_comment:
     types: [created]
 
+env:
+  HELP_MESSAGE: |
+    **Available commands:**
+    | Command | Description |
+    |---------|-------------|
+    | `/ok-to-test` | Approve and run tests + package (maintainers only). Persists: new pushes auto-trigger tests. |
+    | `/stop-test` | Remove test approval (maintainers only) |
+    | `/help` | Show this help message |
+
 jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Post available commands
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "$HELP_MESSAGE"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   help:
     runs-on: ubuntu-latest
     if: >
+      github.event_name == 'issue_comment' &&
       github.event.issue.pull_request != null &&
       startsWith(github.event.comment.body, '/help')
     steps:
@@ -15,15 +40,7 @@ jobs:
         run: |
           gh pr comment ${{ github.event.issue.number }} \
             --repo ${{ github.repository }} \
-            --body "$(cat <<'EOF'
-          **Available commands:**
-          | Command | Description |
-          |---------|-------------|
-          | `/ok-to-test` | Approve and run tests + package (maintainers only). Persists: new pushes auto-trigger tests. |
-          | `/stop-test` | Remove test approval (maintainers only) |
-          | `/help` | Show this help message |
-          EOF
-          )"
+            --body "$HELP_MESSAGE"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
