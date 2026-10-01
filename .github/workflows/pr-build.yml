@@ -10,6 +10,9 @@ permissions:
   issues: read
   statuses: write
 
+env:
+  MAINTAINER_ASSOCIATIONS: '["OWNER", "MEMBER", "COLLABORATOR"]'
+
 jobs:
   build:
     uses: ./.github/workflows/build.yml
@@ -25,9 +28,13 @@ jobs:
         run: |
           approved=$(gh api --paginate --slurp \
             "repos/$REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" |
-            jq -r --argjson maintainers "$MAINTAINERS" '
+            jq -r --argjson maintainers "$MAINTAINERS" \
+              --argjson associations "$MAINTAINER_ASSOCIATIONS" '
               [ .[][] |
-                select(.user.login as $login | $maintainers | index($login)) |
+                select(
+                  (.user.login as $login | $maintainers | index($login)) or
+                  (.author_association as $assoc | $associations | index($assoc))
+                ) |
                 select(.body == "/ok-to-test" or .body == "/stop-test")
               ] |
               sort_by(.created_at) |
@@ -38,6 +45,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAINTAINERS: ${{ vars.MAINTAINERS || '[]' }}
+          MAINTAINER_ASSOCIATIONS: ${{ env.MAINTAINER_ASSOCIATIONS }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
 

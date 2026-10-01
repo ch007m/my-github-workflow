@@ -21,6 +21,7 @@ env:
     | `/ok-to-test` | Approve tests (maintainers); persists on pushes. |
     | `/stop-test` | Remove test approval (maintainers only) |
     | `/help` | Show this help message |
+  MAINTAINER_ASSOCIATIONS: '["OWNER", "MEMBER", "COLLABORATOR"]'
 
 jobs:
   welcome:
@@ -55,9 +56,15 @@ jobs:
     if: >
       github.event.issue.pull_request != null &&
       github.event.comment.body == '/ok-to-test' &&
-      contains(
-        fromJSON(vars.MAINTAINERS || '[]'),
-        github.event.comment.user.login
+      (
+        contains(
+          fromJSON(vars.MAINTAINERS || '[]'),
+          github.event.comment.user.login
+        ) ||
+        contains(
+          fromJSON(env.MAINTAINER_ASSOCIATIONS),
+          github.event.comment.author_association
+        )
       )
     outputs:
       sha: ${{ steps.pr.outputs.sha }}
@@ -94,9 +101,13 @@ jobs:
         run: |
           approved=$(gh api --paginate --slurp \
             "repos/$REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" |
-            jq -r --argjson maintainers "$MAINTAINERS" '
+            jq -r --argjson maintainers "$MAINTAINERS" \
+              --argjson associations "$MAINTAINER_ASSOCIATIONS" '
               [ .[][] |
-                select(.user.login as $login | $maintainers | index($login)) |
+                select(
+                  (.user.login as $login | $maintainers | index($login)) or
+                  (.author_association as $assoc | $associations | index($assoc))
+                ) |
                 select(.body == "/ok-to-test" or .body == "/stop-test")
               ] |
               sort_by(.created_at) |
@@ -120,6 +131,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAINTAINERS: ${{ vars.MAINTAINERS || '[]' }}
+          MAINTAINER_ASSOCIATIONS: ${{ env.MAINTAINER_ASSOCIATIONS }}
           PR_NUMBER: ${{ github.event.issue.number }}
           REPOSITORY: ${{ github.repository }}
           PR_HEAD_SHA: ${{ needs.approve.outputs.sha }}
@@ -130,9 +142,15 @@ jobs:
     if: >
       github.event.issue.pull_request != null &&
       github.event.comment.body == '/stop-test' &&
-      contains(
-        fromJSON(vars.MAINTAINERS || '[]'),
-        github.event.comment.user.login
+      (
+        contains(
+          fromJSON(vars.MAINTAINERS || '[]'),
+          github.event.comment.user.login
+        ) ||
+        contains(
+          fromJSON(env.MAINTAINER_ASSOCIATIONS),
+          github.event.comment.author_association
+        )
       )
     steps:
       - name: Remove approval label and update test-gate status
