@@ -13,7 +13,9 @@ jobs:
     steps:
       - name: Post available commands
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "$(cat <<'EOF'
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "$(cat <<'EOF'
           **Available commands:**
           | Command | Description |
           |---------|-------------|
@@ -33,7 +35,9 @@ jobs:
     steps:
       - name: Post available commands
         run: |
-          gh pr comment ${{ github.event.issue.number }} --body "$(cat <<'EOF'
+          gh pr comment ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --body "$(cat <<'EOF'
           **Available commands:**
           | Command | Description |
           |---------|-------------|
@@ -77,7 +81,7 @@ jobs:
       - name: Get PR branch
         id: pr
         run: |
-          PR_REF=$(gh pr view ${{ github.event.issue.number }} --json headRefName --jq '.headRefName')
+          PR_REF=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefName --jq '.headRefName')
           echo "ref=$PR_REF" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
