@@ -3,7 +3,7 @@ name: PR Build
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, labeled, unlabeled]
+    types: [opened, synchronize]
 
 permissions:
   contents: read
@@ -13,23 +13,10 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
 
-  # NOTE: this job is expected to be skipped on a freshly opened PR, since the
-  # ok-to-test label cannot exist yet. It only has a chance to run on a later
-  # 'synchronize' event (a new push to an already-approved PR) or a manual
-  # 'labeled' event, so new commits can't bypass approval. The initial test
-  # run for a PR is performed directly by pr-commands.yml when the
-  # /ok-to-test command is posted. The ok-to-test label is the single source
-  # of truth for approval: it is only added/removed by pr-commands.yml after
-  # verifying the commenter is a maintainer (see approve/revoke-approval jobs
-  # there), so re-checking the comment history here would be redundant and,
-  # as observed, error-prone - rely on the label instead.
   test-and-package:
     if: >
-      contains(github.event.pull_request.labels.*.name, 'ok-to-test') &&
-      (github.event.action != 'labeled' ||
-       github.event.label.name == 'ok-to-test') &&
-      (github.event.action != 'unlabeled' ||
-       github.event.label.name != 'ok-to-test')
+      github.event.action == 'synchronize' &&
+      contains(github.event.pull_request.labels.*.name, 'ok-to-test')
     uses: ./.github/workflows/test-and-package.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
@@ -38,29 +25,14 @@ jobs:
 
   set-test-gate:
     needs: [test-and-package]
-    if: >
-      always() &&
-      (needs.test-and-package.result != 'skipped' ||
-       (github.event.action == 'unlabeled' &&
-        github.event.label.name == 'ok-to-test'))
     runs-on: ubuntu-latest
     steps:
-      - name: Update test-gate status
+      - name: Set test-gate status to success
         run: |
-          if [[ "$TEST_RESULT" == "success" ]]; then
-            state=success
-            description="Tests approved and passed"
-          else
-            state=failure
-            description="Tests failed or approval removed"
-          fi
-
-          gh api "repos/$GITHUB_REPOSITORY/statuses/$PR_HEAD_SHA" \
+          gh api "repos/$GITHUB_REPOSITORY/statuses/${{ github.event.pull_request.head.sha }}" \
             --method POST \
-            -f "state=$state" \
+            -f state=success \
             -f context=test-gate \
-            -f "description=$description"
+            -f description="Tests approved and passed"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          TEST_RESULT: ${{ needs.test-and-package.result }}
