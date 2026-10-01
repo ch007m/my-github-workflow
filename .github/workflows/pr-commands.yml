@@ -21,7 +21,6 @@ env:
     | `/ok-to-test` | Approve tests (maintainers); persists on pushes. |
     | `/stop-test` | Remove test approval (maintainers only) |
     | `/help` | Show this help message |
-  MAINTAINER_ASSOCIATIONS: '["OWNER", "MEMBER", "COLLABORATOR"]'
 
 jobs:
   welcome:
@@ -62,7 +61,7 @@ jobs:
           github.event.comment.user.login
         ) ||
         contains(
-          fromJSON(env.MAINTAINER_ASSOCIATIONS),
+          fromJSON(vars.MAINTAINER_ASSOCIATIONS || '["OWNER", "MEMBER", "COLLABORATOR"]'),
           github.event.comment.author_association
         )
       )
@@ -131,7 +130,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAINTAINERS: ${{ vars.MAINTAINERS || '[]' }}
-          MAINTAINER_ASSOCIATIONS: ${{ env.MAINTAINER_ASSOCIATIONS }}
+          MAINTAINER_ASSOCIATIONS: ${{ vars.MAINTAINER_ASSOCIATIONS || '["OWNER", "MEMBER", "COLLABORATOR"]' }}
           PR_NUMBER: ${{ github.event.issue.number }}
           REPOSITORY: ${{ github.repository }}
           PR_HEAD_SHA: ${{ needs.approve.outputs.sha }}
@@ -148,7 +147,7 @@ jobs:
           github.event.comment.user.login
         ) ||
         contains(
-          fromJSON(env.MAINTAINER_ASSOCIATIONS),
+          fromJSON(vars.MAINTAINER_ASSOCIATIONS || '["OWNER", "MEMBER", "COLLABORATOR"]'),
           github.event.comment.author_association
         )
       )
