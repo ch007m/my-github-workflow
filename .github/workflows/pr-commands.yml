@@ -76,6 +76,8 @@ jobs:
     uses: ./.github/workflows/test-and-package.yml
     with:
       ref: ${{ needs.approve.outputs.ref }}
+    secrets:
+      FOO: ${{ secrets.FOO }}
 
   set-test-gate:
     needs: [approve, run-tests]
