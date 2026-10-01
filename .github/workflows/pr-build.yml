@@ -3,6 +3,7 @@ name: PR Build, test and package if approved
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, labeled]
   issue_comment:
     types: [created]
 
@@ -132,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'pull_request' &&
-      github.event.action == 'synchronize' &&
+      (github.event.action == 'synchronize' || github.event.action == 'labeled') &&
       contains(github.event.pull_request.labels.*.name, 'ok-to-test')
     steps:
       - uses: actions/checkout@v4
