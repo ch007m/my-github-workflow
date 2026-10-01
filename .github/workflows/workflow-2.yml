@@ -16,7 +16,8 @@ jobs:
             exit 1
           fi
         env:
-          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'approved') }}
+          HAS_LABEL: >-
+            ${{ contains(github.event.pull_request.labels.*.name, 'status: approved') }}
 
       - name: Check out PR code
         uses: actions/checkout@v4
