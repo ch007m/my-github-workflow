@@ -3,6 +3,8 @@ name: PR Build, test and package if approved
 on:
   pull_request:
     branches: [main]
+  issue_comment:
+    types: [created]
 
 jobs:
   build:
@@ -28,13 +30,23 @@ jobs:
 
   test-package:
     runs-on: ubuntu-latest
-    # Only run if the comment is on a PR, contains '/ok-to-test', and was posted by a maintainer
     if: >
+      github.event_name == 'issue_comment' &&
       github.event.issue.pull_request != null &&
       startsWith(github.event.comment.body, '/ok-to-test') &&
       contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association)
     steps:
+      - name: Get PR branch
+        id: pr
+        run: |
+          PR_REF=$(gh pr view ${{ github.event.issue.number }} --json headRefName --jq '.headRefName')
+          echo "ref=$PR_REF" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.ref }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
