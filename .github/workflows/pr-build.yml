@@ -1,16 +1,14 @@
-name: PR review
+name: PR Build
 
 on:
   pull_request:
     branches: [main]
     types: [opened, synchronize]
-  issue_comment:
-    types: [created]
 
 jobs:
   welcome:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    if: github.event.action == 'opened'
     steps:
       - name: Post available commands
         run: |
@@ -28,157 +26,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  help:
-    runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request != null &&
-      startsWith(github.event.comment.body, '/help')
-    steps:
-      - name: Post available commands
-        run: |
-          gh pr comment ${{ github.event.issue.number }} \
-            --repo ${{ github.repository }} \
-            --body "$(cat <<'EOF'
-          **Available commands:**
-          | Command | Description |
-          |---------|-------------|
-          | `/ok-to-test` | Approve and run tests + package (maintainers only). Persists: new pushes auto-trigger tests. |
-          | `/stop-test` | Remove test approval (maintainers only) |
-          | `/help` | Show this help message |
-          EOF
-          )"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Check secrets
-        run: |
-          if [ -n "$FOO" ]; then
-            echo "FOO secret is set"
-          else
-            echo "FOO secret is NOT set"
-          fi
-        env:
-          FOO: ${{ secrets.FOO }}
-
-  approve-and-test:
-    runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request != null &&
-      startsWith(github.event.comment.body, '/ok-to-test') &&
-      contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association)
-    steps:
-      - name: Add ok-to-test label
-        run: |
-          gh pr edit ${{ github.event.issue.number }} \
-            --repo ${{ github.repository }} \
-            --add-label "ok-to-test"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Get PR details
-        id: pr
-        run: |
-          PR_DATA=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefName,headRefOid --jq '.')
-          echo "ref=$(echo "$PR_DATA" | jq -r '.headRefName')" >> "$GITHUB_OUTPUT"
-          echo "sha=$(echo "$PR_DATA" | jq -r '.headRefOid')" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.pr.outputs.ref }}
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Run tests
-        run: mvn test
-
-      - name: Run package
-        run: mvn package
-
-      - name: Set test-gate status to success
-        run: |
-          gh api repos/${{ github.repository }}/statuses/${{ steps.pr.outputs.sha }} \
-            --method POST \
-            -f state=success \
-            -f context=test-gate \
-            -f description="Tests approved and passed"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  revoke-approval:
-    runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request != null &&
-      startsWith(github.event.comment.body, '/stop-test') &&
-      contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association)
-    steps:
-      - name: Get PR head SHA
-        id: pr
-        run: |
-          SHA=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefOid --jq '.headRefOid')
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Remove ok-to-test label
-        run: |
-          gh pr edit ${{ github.event.issue.number }} \
-            --repo ${{ github.repository }} \
-            --remove-label "ok-to-test"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set test-gate status to failure
-        run: |
-          gh api repos/${{ github.repository }}/statuses/${{ steps.pr.outputs.sha }} \
-            --method POST \
-            -f state=failure \
-            -f context=test-gate \
-            -f description="Test approval revoked"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    uses: ./.github/workflows/build.yml
 
   test-on-push:
-    runs-on: ubuntu-latest
     if: >
-      github.event_name == 'pull_request' &&
       github.event.action == 'synchronize' &&
       contains(github.event.pull_request.labels.*.name, 'ok-to-test')
+    uses: ./.github/workflows/test-and-package.yml
+
+  set-test-gate:
+    needs: test-on-push
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Run tests
-        run: mvn test
-
-      - name: Run package
-        run: mvn package
-
       - name: Set test-gate status to success
         run: |
           gh api repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }} \

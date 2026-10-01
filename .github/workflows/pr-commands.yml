@@ -1,0 +1,108 @@
+name: PR Commands
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  help:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, '/help')
+    steps:
+      - name: Post available commands
+        run: |
+          gh pr comment ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --body "$(cat <<'EOF'
+          **Available commands:**
+          | Command | Description |
+          |---------|-------------|
+          | `/ok-to-test` | Approve and run tests + package (maintainers only). Persists: new pushes auto-trigger tests. |
+          | `/stop-test` | Remove test approval (maintainers only) |
+          | `/help` | Show this help message |
+          EOF
+          )"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  approve:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, '/ok-to-test') &&
+      contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association)
+    outputs:
+      ref: ${{ steps.pr.outputs.ref }}
+      sha: ${{ steps.pr.outputs.sha }}
+    steps:
+      - name: Add ok-to-test label
+        run: |
+          gh pr edit ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --add-label "ok-to-test"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get PR details
+        id: pr
+        run: |
+          PR_DATA=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefName,headRefOid --jq '.')
+          echo "ref=$(echo "$PR_DATA" | jq -r '.headRefName')" >> "$GITHUB_OUTPUT"
+          echo "sha=$(echo "$PR_DATA" | jq -r '.headRefOid')" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  run-tests:
+    needs: approve
+    uses: ./.github/workflows/test-and-package.yml
+    with:
+      ref: ${{ needs.approve.outputs.ref }}
+
+  set-test-gate:
+    needs: [approve, run-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set test-gate status to success
+        run: |
+          gh api repos/${{ github.repository }}/statuses/${{ needs.approve.outputs.sha }} \
+            --method POST \
+            -f state=success \
+            -f context=test-gate \
+            -f description="Tests approved and passed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  revoke-approval:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, '/stop-test') &&
+      contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association)
+    steps:
+      - name: Get PR head SHA
+        id: pr
+        run: |
+          SHA=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefOid --jq '.headRefOid')
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove ok-to-test label
+        run: |
+          gh pr edit ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --remove-label "ok-to-test"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set test-gate status to failure
+        run: |
+          gh api repos/${{ github.repository }}/statuses/${{ steps.pr.outputs.sha }} \
+            --method POST \
+            -f state=failure \
+            -f context=test-gate \
+            -f description="Test approval revoked"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
