@@ -20,5 +20,6 @@ git add README.md
 git commit -m "Test $VALUE"
 git push -u origin "$BRANCH"
 
-echo "Branch '$BRANCH' pushed. Create a PR with:"
-echo "  gh pr create --title 'Test $VALUE' --body 'Test $VALUE'"
+PR_URL=$(gh pr create --title "Test $VALUE" --body "Test $VALUE" 2>&1)
+echo ""
+echo "PR created: $PR_URL"
