@@ -3,30 +3,84 @@ name: PR Build
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize]
+    types: [opened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  issues: read
+  statuses: write
 
 jobs:
   build:
     uses: ./.github/workflows/build.yml
 
-  test-on-push:
+  check-approval:
+    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test')
+    runs-on: ubuntu-latest
+    outputs:
+      approved: ${{ steps.approval.outputs.approved }}
+    steps:
+      - name: Check latest maintainer approval command
+        id: approval
+        run: |
+          approved=$(gh api --paginate --slurp \
+            "repos/$REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" |
+            jq -r --argjson maintainers "$MAINTAINERS" '
+              [ .[][] |
+                select(.user.login as $login | $maintainers | index($login)) |
+                select(.body == "/ok-to-test" or .body == "/stop-test")
+              ] |
+              sort_by(.created_at) |
+              (last // {}) |
+              (.body == "/ok-to-test")
+            ')
+          echo "approved=$approved" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAINTAINERS: ${{ vars.MAINTAINERS || '[]' }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+
+  test-and-package:
+    needs: check-approval
     if: >
-      github.event.action == 'synchronize' &&
-      contains(github.event.pull_request.labels.*.name, 'ok-to-test')
+      needs.check-approval.outputs.approved == 'true' &&
+      contains(github.event.pull_request.labels.*.name, 'ok-to-test') &&
+      (github.event.action != 'labeled' ||
+       github.event.label.name == 'ok-to-test') &&
+      (github.event.action != 'unlabeled' ||
+       github.event.label.name != 'ok-to-test')
     uses: ./.github/workflows/test-and-package.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
     secrets:
       FOO: ${{ secrets.FOO }}
 
   set-test-gate:
-    needs: test-on-push
+    needs: [check-approval, test-and-package]
+    if: >
+      always() &&
+      (needs.test-and-package.result != 'skipped' ||
+       (github.event.action == 'unlabeled' &&
+        github.event.label.name == 'ok-to-test'))
     runs-on: ubuntu-latest
     steps:
-      - name: Set test-gate status to success
+      - name: Update test-gate status
         run: |
-          gh api repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }} \
+          if [[ "$TEST_RESULT" == "success" ]]; then
+            state=success
+            description="Tests approved and passed"
+          else
+            state=failure
+            description="Tests failed or approval removed"
+          fi
+
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$PR_HEAD_SHA" \
             --method POST \
-            -f state=success \
+            -f "state=$state" \
             -f context=test-gate \
-            -f description="Tests approved and passed"
+            -f "description=$description"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          TEST_RESULT: ${{ needs.test-and-package.result }}
