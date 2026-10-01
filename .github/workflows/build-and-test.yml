@@ -3,8 +3,6 @@ name: Build and Test
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   build:
@@ -18,17 +16,15 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Echo secrets
+      - name: Check secrets
         run: |
-          echo "============================================"
-          echo "Logging environment secrets for ci-testing"
-          echo "============================================"
-          echo ""
-          echo ">> FOO value is: ${{ secrets.FOO }}"
-          #echo ">> API_KEY value is: ${{ secrets.API_KEY }}"
-          echo ""
-          echo "Note: GitHub Actions masks secret values in logs"
-          echo "============================================"    
+          if [ -n "$FOO" ]; then
+            echo "FOO secret is set"
+          else
+            echo "FOO secret is NOT set"
+          fi
+        env:
+          FOO: ${{ secrets.FOO }}
 
       - name: Build with Maven
         run: mvn -B package -DskipTests
@@ -36,7 +32,6 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-    environment: ci-testing
     steps:
       - uses: actions/checkout@v4
 
@@ -45,18 +40,6 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-
-      - name: Echo secrets
-        run: |
-          echo "============================================"
-          echo "Logging environment secrets for ci-testing"
-          echo "============================================"
-          echo ""
-          echo ">> FOO value is: ${{ secrets.FOO }}"
-          #echo ">> API_KEY value is: ${{ secrets.API_KEY }}"
-          echo ""
-          echo "Note: GitHub Actions masks secret values in logs"
-          echo "============================================"
 
       - name: Run tests
         run: mvn test
