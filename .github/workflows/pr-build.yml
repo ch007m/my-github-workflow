@@ -7,52 +7,24 @@ on:
 
 permissions:
   contents: read
-  issues: read
   statuses: write
-
-env:
-  MAINTAINER_ASSOCIATIONS: '["OWNER", "MEMBER", "COLLABORATOR"]'
 
 jobs:
   build:
     uses: ./.github/workflows/build.yml
 
-  check-approval:
-    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test')
-    runs-on: ubuntu-latest
-    outputs:
-      approved: ${{ steps.approval.outputs.approved }}
-    steps:
-      - name: Check latest maintainer approval command
-        id: approval
-        run: |
-          approved=$(gh api --paginate --slurp \
-            "repos/$REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" |
-            jq -r --argjson maintainers "$MAINTAINERS" \
-              --argjson associations "$MAINTAINER_ASSOCIATIONS" '
-              [ .[][] |
-                select(
-                  (.user.login as $login | $maintainers | index($login)) or
-                  (.author_association as $assoc | $associations | index($assoc))
-                ) |
-                select(.body == "/ok-to-test" or .body == "/stop-test")
-              ] |
-              sort_by(.created_at) |
-              (last // {}) |
-              (.body == "/ok-to-test")
-            ')
-          echo "approved=$approved" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAINTAINERS: ${{ vars.MAINTAINERS || '[]' }}
-          MAINTAINER_ASSOCIATIONS: ${{ env.MAINTAINER_ASSOCIATIONS }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPOSITORY: ${{ github.repository }}
-
+  # NOTE: this job is expected to be skipped on a freshly opened PR, since the
+  # ok-to-test label cannot exist yet. It only has a chance to run on a later
+  # 'synchronize' event (a new push to an already-approved PR) or a manual
+  # 'labeled' event, so new commits can't bypass approval. The initial test
+  # run for a PR is performed directly by pr-commands.yml when the
+  # /ok-to-test command is posted. The ok-to-test label is the single source
+  # of truth for approval: it is only added/removed by pr-commands.yml after
+  # verifying the commenter is a maintainer (see approve/revoke-approval jobs
+  # there), so re-checking the comment history here would be redundant and,
+  # as observed, error-prone - rely on the label instead.
   test-and-package:
-    needs: check-approval
     if: >
-      needs.check-approval.outputs.approved == 'true' &&
       contains(github.event.pull_request.labels.*.name, 'ok-to-test') &&
       (github.event.action != 'labeled' ||
        github.event.label.name == 'ok-to-test') &&
@@ -65,7 +37,7 @@ jobs:
       FOO: ${{ secrets.FOO }}
 
   set-test-gate:
-    needs: [check-approval, test-and-package]
+    needs: [test-and-package]
     if: >
       always() &&
       (needs.test-and-package.result != 'skipped' ||
