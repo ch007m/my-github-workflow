@@ -7,8 +7,6 @@ on:
         description: Git ref to checkout
         required: false
         type: string
-  push:
-    branches: [main]
 
 jobs:
   build:

@@ -11,9 +11,15 @@ permissions:
 
 jobs:
   build:
+    if: >
+      github.event.action == 'synchronize' &&
+      contains(github.event.pull_request.labels.*.name, 'ok-to-test')
     uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
 
   test-and-package:
+    needs: [build]
     if: >
       github.event.action == 'synchronize' &&
       contains(github.event.pull_request.labels.*.name, 'ok-to-test')

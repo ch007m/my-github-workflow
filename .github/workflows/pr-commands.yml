@@ -80,8 +80,14 @@ jobs:
           PR_NUMBER: ${{ github.event.issue.number }}
           REPOSITORY: ${{ github.repository }}
 
-  run-tests:
+  run-build:
     needs: approve
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ needs.approve.outputs.sha }}
+
+  run-tests:
+    needs: [approve, run-build]
     uses: ./.github/workflows/test-and-package.yml
     with:
       ref: ${{ needs.approve.outputs.sha }}
@@ -89,7 +95,7 @@ jobs:
       FOO: ${{ secrets.FOO }}
 
   set-test-gate:
-    needs: [approve, run-tests]
+    needs: [approve, run-build, run-tests]
     if: >
       always() &&
       needs.approve.result == 'success' &&
