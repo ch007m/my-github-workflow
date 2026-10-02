@@ -14,7 +14,7 @@ jobs:
     if: >
       github.repository_owner == 'ch007m' &&
       contains(github.event.pull_request.labels.*.name, 'status: to-test')
-    uses: ./.github/workflows/workflow-1.yml
+    uses: ./.github/workflows/pr-skill-diff.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
 
