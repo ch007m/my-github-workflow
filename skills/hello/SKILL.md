@@ -6,5 +6,5 @@ description: Use when user is saying Hello, HelloWorld.
 # Instructions
 
 - Create some beautiful hello world messages
-- Max 50 messages
+- Max 03 messages
 - Add a HELLO.md messages
