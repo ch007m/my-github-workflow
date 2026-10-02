@@ -7,30 +7,48 @@ on:
         description: Git ref to checkout
         required: false
         type: string
+    outputs:
+      skills_changed:
+        description: Whether SKILL files were changed
+        value: ${{ jobs.export.outputs.skills_changed }}
 
 jobs:
   export:
     name: Export PR Artifacts
     runs-on: ubuntu-latest
+    outputs:
+      skills_changed: ${{ steps.check-skills.outputs.changed }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || '' }}
+          fetch-depth: 0
 
-      - name: Show git log
+      - name: Check if SKILL files changed
+        id: check-skills
         run: |
-          echo "Show git log ..."
-          git log --pretty=format:'%C(yellow)%h %Cred%ad %Cblue%an%Cgreen%d %Creset%s' --date=short $argv 
+          CHANGED_FILES=$(git diff --name-only origin/main..HEAD -- '*.skill' '**/SKILL*' '**/skills/**' || true)
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "SKILL files changed:"
+            echo "$CHANGED_FILES"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No SKILL files changed"
+          fi
 
       - name: Generate artifacts
+        if: steps.check-skills.outputs.changed == 'true'
         run: |
-          mkdir -p output
-          echo "head_sha=${{ inputs.ref }}" > output/pr-info.txt
-          echo "Build report generated at $(date -u)" > output/report.txt
+          mkdir -p skills
+          echo "head_sha=${{ inputs.ref }}" > skills/pr-info.txt
+          git diff --name-only origin/main..HEAD -- '*.skill' '**/SKILL*' '**/skills/**' > skills/changed-skills.txt
+          echo "Build report generated at $(date -u)" > skills/report.txt
 
       - name: Upload artifacts
+        if: steps.check-skills.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: pr-artifacts
-          path: output/
+          path: skills/

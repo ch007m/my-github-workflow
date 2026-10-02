@@ -21,68 +21,23 @@ jobs:
   process:
     name: Process Exported Artifacts
     needs: export
+    if: needs.export.outputs.skills_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-    #  - name: Set pending status
-    #    run: |
-    #      gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
-    #        --method POST \
-    #        -f state=pending \
-    #        -f context=post-export-processing \
-    #        -f description="Processing exported artifacts..."
-    #    env:
-    #      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-    #
-    #  - name: Comment processing started
-    #    run: |
-    #      gh pr comment "${{ github.event.pull_request.number }}" \
-    #        --repo "$GITHUB_REPOSITORY" \
-    #        --body "⏳ **Post-export processing started** — [View run](https://github.com/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }})"
-    #    env:
-    #      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: pr-artifacts
           path: downloaded/
 
-      - name: Process artifacts
+      - name: Process SKILL artifacts
         run: |
-          echo "=== Downloaded artifacts ==="
+          echo "=== Changed SKILL files ==="
+          cat downloaded/changed-skills.txt
+          echo ""
+          echo "=== PR info ==="
           cat downloaded/pr-info.txt
           cat downloaded/report.txt
           echo ""
-          echo "Processing artifacts..."
+          echo "Processing SKILL artifacts..."
           echo "Post-export processing completed successfully!"
-
-    #  - name: Set final status (success)
-    #    if: success()
-    #    run: |
-    #      gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
-    #        --method POST \
-    #        -f state=success \
-    #        -f context=post-export-processing \
-    #        -f description="Artifact processing completed"
-    #      gh pr comment "${{ github.event.pull_request.number }}" \
-    #        --repo "$GITHUB_REPOSITORY" \
-    #        --body "✅ **Post-export processing completed** — [View run](https://github.com/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }})"
-    #    env:
-    #      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-
-    #  - name: Set final status (failure)
-    #    if: failure()
-    #    run: |
-    #      gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
-    #        --method POST \
-    #        -f state=failure \
-    #        -f context=post-export-processing \
-    #        -f description="Artifact processing failed"
-    #      gh pr comment "${{ github.event.pull_request.number }}" \
-    #        --repo "$GITHUB_REPOSITORY" \
-    #        --body "❌ **Post-export processing failed** — [View run](https://github.com/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }})"
-    #    env:
-    #      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
