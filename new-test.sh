@@ -23,3 +23,5 @@ git push -u origin "$BRANCH"
 PR_URL=$(gh pr create --title "Test $VALUE" --body "Test $VALUE" 2>&1)
 echo ""
 echo "PR created: $PR_URL"
+
+git checkout main
