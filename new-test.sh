@@ -20,6 +20,7 @@ gh pr list --repo "$(gh repo view --json nameWithOwner --jq '.nameWithOwner')" \
 | while read -r pr_number branch_name; do
     echo "  Closing PR #$pr_number ($branch_name)"
     gh pr close "$pr_number" --delete-branch 2>/dev/null || true
+    git delete branch -D "$pr_number"
   done
 
 git checkout main
