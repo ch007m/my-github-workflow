@@ -64,3 +64,25 @@ jobs:
           echo "Post-export processing completed successfully!"
         env:
           FOO: ${{ secrets.FOO }}
+
+  gate:
+    name: test-gate
+    needs: [export, build-jar, process]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'status: to-test') }}" != "true" ]]; then
+            echo "Label 'status: to-test' is required to merge"
+            exit 1
+          fi
+          if [[ "${{ needs.export.result }}" == "failure" || "${{ needs.build-jar.result }}" == "failure" ]]; then
+            echo "Build or export failed"
+            exit 1
+          fi
+          if [[ "${{ needs.process.result }}" == "failure" ]]; then
+            echo "SKILL processing failed"
+            exit 1
+          fi
+          echo "All checks passed"
