@@ -93,23 +93,44 @@ jobs:
           FOO: ${{ secrets.FOO }}
 
   gate:
-    name: test-gate
+    name: CI Gate
     needs: [export, build, process]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Check results
+      - name: Set gate status
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          SHA="${{ github.event.pull_request.head.sha }}"
+          REPO="${{ github.repository }}"
+
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'status: to-test') }}" != "true" ]]; then
-            echo "Label 'status: to-test' is required to run the tests before to merge"
-            exit 1
+            gh api "repos/$REPO/statuses/$SHA" \
+              -f state=pending \
+              -f context=test-gate \
+              -f "description=Waiting for 'status: to-test' label"
+            echo "Status set to pending — label not applied yet"
+            exit 0
           fi
+
           if [[ "${{ needs.export.result }}" == "failure" || "${{ needs.build.result }}" == "failure" ]]; then
-            echo "Build or export failed"
-            exit 1
+            gh api "repos/$REPO/statuses/$SHA" \
+              -f state=failure \
+              -f context=test-gate \
+              -f "description=Build or export failed"
+            exit 0
           fi
+
           if [[ "${{ needs.process.result }}" == "failure" ]]; then
-            echo "SKILL processing failed"
-            exit 1
+            gh api "repos/$REPO/statuses/$SHA" \
+              -f state=failure \
+              -f context=test-gate \
+              -f "description=SKILL processing failed"
+            exit 0
           fi
-          echo "All checks passed"
+
+          gh api "repos/$REPO/statuses/$SHA" \
+            -f state=success \
+            -f context=test-gate \
+            -f "description=All checks passed"
