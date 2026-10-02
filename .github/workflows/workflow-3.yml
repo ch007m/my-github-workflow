@@ -2,15 +2,21 @@ name: Workflow 3 (Export Artifacts)
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled]
 
 jobs:
   export:
     name: Export PR Artifacts
     runs-on: ubuntu-latest
+    if: >
+      github.event.label.name == 'status: to-test'
     steps:
       - name: Check out PR code
         uses: actions/checkout@v4
+
+      - name: Run action
+        run: |
+          echo "Label 'status: to-test' was applied to PR #${{ github.event.pull_request.number }}"
 
       - name: Generate artifacts
         run: |
