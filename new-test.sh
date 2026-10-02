@@ -22,9 +22,10 @@ gh pr list --repo "$(gh repo view --json nameWithOwner --jq '.nameWithOwner')" \
     gh pr close "$pr_number" --delete-branch 2>/dev/null || true
   done
 
-# Delete local test branch if it exists
+# Delete test branch locally and remotely
 git checkout main
 git branch -D "$BRANCH" 2>/dev/null || true
+git push origin --delete "$BRANCH" 2>/dev/null || true
 git pull origin main
 git checkout -b "$BRANCH"
 
