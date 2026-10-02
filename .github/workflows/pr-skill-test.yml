@@ -24,16 +24,16 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body: [
-                '### CI checks required before merge',
+                '### Test required before merge',
                 '',
                 'A maintainer must add the `status: to-test` label to trigger the CI pipeline.',
                 '',
-                '| Check | Description |',
+                '| Job | Description |',
                 '|-------|-------------|',
                 '| **Build JAR** | Builds the project from main |',
                 '| **Export** | Detects SKILL file changes |',
                 '| **Process** | Processes SKILL artifacts (if changed) |',
-                '| **test-gate** | Final gate — must pass before merge |',
+                '| **PR Review Status** | Final status — must pass before merge |',
               ].join('\n')
             });
 
@@ -93,7 +93,7 @@ jobs:
           FOO: ${{ secrets.FOO }}
 
   gate:
-    name: CI Gate
+    name: PR Review Status
     needs: [export, build, process]
     if: always()
     runs-on: ubuntu-latest
@@ -108,7 +108,7 @@ jobs:
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'status: to-test') }}" != "true" ]]; then
             gh api "repos/$REPO/statuses/$SHA" \
               -f state=pending \
-              -f context=test-gate \
+              -f "context=PR Review Status" \
               -f "description=Waiting for 'status: to-test' label"
             echo "Status set to pending — label not applied yet"
             exit 0
@@ -117,7 +117,7 @@ jobs:
           if [[ "${{ needs.export.result }}" == "failure" || "${{ needs.build.result }}" == "failure" ]]; then
             gh api "repos/$REPO/statuses/$SHA" \
               -f state=failure \
-              -f context=test-gate \
+              -f "context=PR Review Status" \
               -f "description=Build or export failed"
             exit 0
           fi
@@ -125,12 +125,12 @@ jobs:
           if [[ "${{ needs.process.result }}" == "failure" ]]; then
             gh api "repos/$REPO/statuses/$SHA" \
               -f state=failure \
-              -f context=test-gate \
+              -f "context=PR Review Status" \
               -f "description=SKILL processing failed"
             exit 0
           fi
 
           gh api "repos/$REPO/statuses/$SHA" \
             -f state=success \
-            -f context=test-gate \
-            -f "description=All checks passed"
+            -f "context=PR Review Status" \
+            -f "description=All tests passed"
