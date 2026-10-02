@@ -1,13 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ -z "${1:-}" ]; then
-  echo "Usage: $0 <test-number>"
-  echo "Example: $0 007"
+if [ -z "${1:-}" ] || [ -z "${2:-}" ]; then
+  echo "Usage: $0 <test-number> <skill|readme>"
+  echo "Example: $0 007 skill"
+  echo "         $0 007 readme"
   exit 1
 fi
 
 VALUE="$1"
+TARGET="$2"
 BRANCH="test/${VALUE}-test"
 
 # Close previous test PRs and delete their branches
@@ -24,9 +26,21 @@ git checkout main
 git pull origin main
 git checkout -b "$BRANCH"
 
-sed -i '' "s/^- Max [0-9]* messages/- Max $VALUE messages/" skills/hello/SKILL.md
+case "$TARGET" in
+  skill)
+    sed -i '' "s/^- Max [0-9]* messages/- Max $VALUE messages/" skills/hello/SKILL.md
+    git add skills/hello/SKILL.md
+    ;;
+  readme)
+    sed -i '' "s/Test [0-9]*/Test $VALUE/" README.md
+    git add README.md
+    ;;
+  *)
+    echo "Error: second argument must be 'skill' or 'readme'"
+    exit 1
+    ;;
+esac
 
-git add skills/hello/SKILL.md
 git commit -m "Test $VALUE"
 git push -u origin "$BRANCH"
 
