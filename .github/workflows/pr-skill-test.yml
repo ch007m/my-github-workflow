@@ -37,15 +37,15 @@ jobs:
               ].join('\n')
             });
 
-  build-jar:
+  build:
     name: Build HelloWorld application
     if: >
       github.repository_owner == 'ch007m' &&
       contains(github.event.pull_request.labels.*.name, 'status: to-test')
-    uses: ./.github/workflows/build-jar.yml
+    uses: ./.github/workflows/pr-build-jar.yml
 
   export:
-    needs: build-jar
+    needs: build
     name: Export artifacts from PR
     uses: ./.github/workflows/pr-skill-diff.yml
     with:
@@ -53,7 +53,7 @@ jobs:
 
   process:
     name: Run tests ...
-    needs: [build-jar,export]
+    needs: [build,export]
     if: needs.export.outputs.skills_changed == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -94,7 +94,7 @@ jobs:
 
   gate:
     name: test-gate
-    needs: [export, build-jar, process]
+    needs: [export, build, process]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -104,7 +104,7 @@ jobs:
             echo "Label 'status: to-test' is required to run the tests before to merge"
             exit 1
           fi
-          if [[ "${{ needs.export.result }}" == "failure" || "${{ needs.build-jar.result }}" == "failure" ]]; then
+          if [[ "${{ needs.export.result }}" == "failure" || "${{ needs.build.result }}" == "failure" ]]; then
             echo "Build or export failed"
             exit 1
           fi
