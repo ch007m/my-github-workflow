@@ -26,7 +26,7 @@ jobs:
               body: [
                 '### AI Test required before merge',
                 '',
-                'A maintainer must add the `status: to-test` label to trigger the CI pipeline.',
+                'A maintainer must add the `status: to-test` label to trigger the following jobs of the pipeline.',
                 '',
                 '| Job | Description |',
                 '|-------|-------------|',
