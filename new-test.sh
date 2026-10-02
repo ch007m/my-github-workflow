@@ -10,7 +10,7 @@ fi
 
 VALUE="$1"
 TARGET="$2"
-BRANCH="test/${VALUE}-test"
+BRANCH="test/${VALUE}"
 
 # Close previous test PRs and delete their branches
 echo "Cleaning up previous test PRs and branches..."
