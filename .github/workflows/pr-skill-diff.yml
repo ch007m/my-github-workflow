@@ -38,6 +38,13 @@ jobs:
             echo "No SKILL files changed"
           fi
 
+      - name: Scan the skills
+        if: steps.check-skills.outputs.changed == 'true'
+        uses: NPJigaK/skillspector-action@v1
+        with:
+          path: .
+          changed-only: true
+
       - name: Generate artifacts
         if: steps.check-skills.outputs.changed == 'true'
         run: |
