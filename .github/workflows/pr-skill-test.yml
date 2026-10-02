@@ -1,4 +1,4 @@
-name: Workflow 4 (Export and Process Artifacts)
+name: Process SKILL if changed
 
 on:
   pull_request:
@@ -14,21 +14,42 @@ jobs:
     if: >
       github.repository_owner == 'ch007m' &&
       contains(github.event.pull_request.labels.*.name, 'status: to-test')
-    uses: ./.github/workflows/workflow-3.yml
+    uses: ./.github/workflows/workflow-1.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
 
+  build-jar:
+    if: >
+      github.repository_owner == 'ch007m' &&
+      contains(github.event.pull_request.labels.*.name, 'status: to-test')
+    uses: ./.github/workflows/build-jar.yml
+
   process:
     name: Process Exported Artifacts
-    needs: export
+    needs: [export, build-jar]
     if: needs.export.outputs.skills_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts
+      - name: Download SKILL artifacts
         uses: actions/download-artifact@v4
         with:
           name: pr-artifacts
           path: downloaded/
+
+      - name: Download JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: helloworld-jar
+          path: jar/
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Run HelloWorld JAR
+        run: java -jar jar/helloworld-1.0-SNAPSHOT.jar
 
       - name: Process SKILL artifacts
         run: |
@@ -39,5 +60,7 @@ jobs:
           cat downloaded/pr-info.txt
           cat downloaded/report.txt
           echo ""
-          echo "Processing SKILL artifacts..."
+          echo "=== Processing SKILL artifacts ..."
           echo "Post-export processing completed successfully!"
+        env:
+          FOO: ${{ secrets.FOO }}

@@ -1,4 +1,4 @@
-name: Workflow 3 (Export Artifacts)
+name: Check if SKILL diff and export
 
 on:
   workflow_call:
