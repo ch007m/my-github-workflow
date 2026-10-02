@@ -61,7 +61,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: pr-artifacts
-          path: downloaded/
+          path: skills/
 
       - name: Download JAR
         uses: actions/download-artifact@v4
@@ -81,11 +81,11 @@ jobs:
       - name: Process SKILL artifacts
         run: |
           echo "=== Changed SKILL files ==="
-          cat downloaded/changed-skills.txt
+          cat skills/changed-skills.txt
           echo ""
           echo "=== PR info ==="
-          cat downloaded/pr-info.txt
-          cat downloaded/report.txt
+          cat skills/pr-info.txt
+          cat skills/report.txt
           echo ""
           echo "=== Processing SKILL artifacts ..."
           echo "Post-export processing completed successfully!"
@@ -93,12 +93,12 @@ jobs:
           FOO: ${{ secrets.FOO }}
 
   gate:
-    name: PR Review Status
+    name: PR AI Test
     needs: [export, build, process]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Set gate status
+      - name: Set job status
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -108,7 +108,7 @@ jobs:
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'status: to-test') }}" != "true" ]]; then
             gh api "repos/$REPO/statuses/$SHA" \
               -f state=pending \
-              -f "context=PR Review Status" \
+              -f "context=PR AI Test" \
               -f "description=Waiting for 'status: to-test' label"
             echo "Status set to pending — label not applied yet"
             exit 0
@@ -117,7 +117,7 @@ jobs:
           if [[ "${{ needs.export.result }}" == "failure" || "${{ needs.build.result }}" == "failure" ]]; then
             gh api "repos/$REPO/statuses/$SHA" \
               -f state=failure \
-              -f "context=PR Review Status" \
+              -f "context=PR AI Test" \
               -f "description=Build or export failed"
             exit 0
           fi
@@ -125,12 +125,12 @@ jobs:
           if [[ "${{ needs.process.result }}" == "failure" ]]; then
             gh api "repos/$REPO/statuses/$SHA" \
               -f state=failure \
-              -f "context=PR Review Status" \
+              -f "context=PR AI Test" \
               -f "description=SKILL processing failed"
             exit 0
           fi
 
           gh api "repos/$REPO/statuses/$SHA" \
             -f state=success \
-            -f "context=PR Review Status" \
+            -f "context=PR AI Test" \
             -f "description=All tests passed"
