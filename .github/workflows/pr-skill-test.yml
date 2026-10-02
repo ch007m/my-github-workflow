@@ -10,6 +10,33 @@ permissions:
   pull-requests: write
 
 jobs:
+  instructions:
+    name: Post PR instructions
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                '### CI checks required before merge',
+                '',
+                'A maintainer must add the `status: to-test` label to trigger the CI pipeline.',
+                '',
+                '| Check | Description |',
+                '|-------|-------------|',
+                '| **Build JAR** | Builds the project from main |',
+                '| **Export** | Detects SKILL file changes |',
+                '| **Process** | Processes SKILL artifacts (if changed) |',
+                '| **test-gate** | Final gate — must pass before merge |',
+              ].join('\n')
+            });
+
   build-jar:
     if: >
       github.repository_owner == 'ch007m' &&
