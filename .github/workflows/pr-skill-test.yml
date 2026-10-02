@@ -46,6 +46,7 @@ jobs:
 
   export:
     needs: build-jar
+    name: Export artifacts from PR
     uses: ./.github/workflows/pr-skill-diff.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
