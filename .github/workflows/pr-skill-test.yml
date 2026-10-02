@@ -1,4 +1,4 @@
-name: Process SKILL if changed
+name: PR review
 
 on:
   pull_request:
@@ -45,9 +45,6 @@ jobs:
 
   export:
     needs: build-jar
-    if: >
-      github.repository_owner == 'ch007m' &&
-      contains(github.event.pull_request.labels.*.name, 'status: to-test')
     uses: ./.github/workflows/pr-skill-diff.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
