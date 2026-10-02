@@ -24,9 +24,9 @@ git checkout main
 git pull origin main
 git checkout -b "$BRANCH"
 
-sed -i '' "s/Test [0-9]*/Test $VALUE/" README.md
+sed -i '' "s/^- Max [0-9]* messages/- Max $VALUE messages/" skills/hello/SKILL.md
 
-git add README.md
+git add skills/hello/SKILL.md
 git commit -m "Test $VALUE"
 git push -u origin "$BRANCH"
 
