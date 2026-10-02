@@ -1,8 +1,9 @@
 name: Workflow 2 (Gated Execution)
 
 on:
-  pull_request:
-    types: [opened, labeled, synchronize]
+  workflow_dispatch:
+  #pull_request:
+  #  types: [opened, labeled, synchronize]
 
 jobs:
   gated-execution:
