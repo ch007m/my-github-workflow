@@ -1,0 +1,27 @@
+name: Workflow 3 (Export Artifacts)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  export:
+    name: Export PR Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR code
+        uses: actions/checkout@v4
+
+      - name: Generate artifacts
+        run: |
+          mkdir -p output
+          echo "pr_number=${{ github.event.pull_request.number }}" > output/pr-info.txt
+          echo "head_sha=${{ github.event.pull_request.head.sha }}" >> output/pr-info.txt
+          echo "ref=${{ github.event.pull_request.head.ref }}" >> output/pr-info.txt
+          echo "Build report generated at $(date -u)" > output/report.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-artifacts
+          path: output/

@@ -1,0 +1,74 @@
+name: Workflow 4 (Post-Export Processing)
+
+on:
+  workflow_run:
+    workflows: ["Workflow 3 (Export Artifacts)"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  statuses: write
+  actions: read
+
+jobs:
+  process:
+    name: Process Exported Artifacts
+    runs-on: ubuntu-latest
+    if: >
+      github.repository_owner == 'ch007m' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    steps:
+      - name: Set pending status
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
+            --method POST \
+            -f state=pending \
+            -f context=post-export-processing \
+            -f description="Processing exported artifacts..."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Download artifacts from workflow 3
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-artifacts
+          path: downloaded/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Process artifacts
+        id: process
+        run: |
+          echo "=== Downloaded artifacts ==="
+          cat downloaded/pr-info.txt
+          cat downloaded/report.txt
+          echo ""
+          echo "Processing artifacts..."
+          echo "Post-export processing completed successfully!"
+
+      - name: Set final status (success)
+        if: success()
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
+            --method POST \
+            -f state=success \
+            -f context=post-export-processing \
+            -f description="Artifact processing completed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set final status (failure)
+        if: failure()
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
+            --method POST \
+            -f state=failure \
+            -f context=post-export-processing \
+            -f description="Artifact processing failed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
