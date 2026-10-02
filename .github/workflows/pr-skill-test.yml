@@ -1,4 +1,4 @@
-name: PR review
+name: PR test
 
 on:
   pull_request:
@@ -42,7 +42,7 @@ jobs:
     if: >
       github.repository_owner == 'ch007m' &&
       contains(github.event.pull_request.labels.*.name, 'status: to-test')
-    uses: ./.github/workflows/pr-build-jar.yml
+    uses: ./.github/workflows/build-jar.yml
 
   export:
     needs: build
