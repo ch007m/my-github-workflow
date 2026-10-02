@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   instructions:
-    name: Post PR instructions
+    name: Set PR instructions
     if: github.event.action == 'opened'
     runs-on: ubuntu-latest
     steps:
@@ -24,16 +24,16 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body: [
-                '### Test required before merge',
+                '### AI Test required before merge',
                 '',
                 'A maintainer must add the `status: to-test` label to trigger the CI pipeline.',
                 '',
                 '| Job | Description |',
                 '|-------|-------------|',
-                '| **Build JAR** | Builds the project from main |',
-                '| **Export** | Detects SKILL file changes |',
-                '| **Process** | Processes SKILL artifacts (if changed) |',
-                '| **PR Review Status** | Final status — must pass before merge |',
+                '| **Build HelloWorld application** | Builds the project from main |',
+                '| **Export artifacts from PR** | Detects SKILL file changes |',
+                '| **Run AI tests** | Run AI tests on SKILL (if changed) |',
+                '| **Pipeline** | Pipeline and jobs status — must pass before merge |',
               ].join('\n')
             });
 
@@ -92,7 +92,7 @@ jobs:
         env:
           FOO: ${{ secrets.FOO }}
 
-  gate:
+  pipeline:
     name: PR AI Test
     needs: [export, build, process]
     if: always()
