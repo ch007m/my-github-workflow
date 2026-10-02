@@ -2,7 +2,7 @@ name: Workflow 3 (Export Artifacts)
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [labeled]
 
 jobs:
   export:
