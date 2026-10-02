@@ -2,7 +2,7 @@ name: Workflow 4 (Export and Process Artifacts)
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled]
 
 permissions:
   contents: read
