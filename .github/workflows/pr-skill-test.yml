@@ -38,6 +38,7 @@ jobs:
             });
 
   build-jar:
+    name: Build HelloWorld application
     if: >
       github.repository_owner == 'ch007m' &&
       contains(github.event.pull_request.labels.*.name, 'status: to-test')
@@ -50,7 +51,7 @@ jobs:
       ref: ${{ github.event.pull_request.head.sha }}
 
   process:
-    name: Process PR's artifacts
+    name: Run tests ...
     needs: [build-jar,export]
     if: needs.export.outputs.skills_changed == 'true'
     runs-on: ubuntu-latest
