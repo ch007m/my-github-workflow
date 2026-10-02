@@ -18,6 +18,11 @@ jobs:
         with:
           ref: ${{ inputs.ref || '' }}
 
+      - name: Show git log
+        run: |
+          echo "Show git log ..."
+          git log --pretty=format:'%C(yellow)%h %Cred%ad %Cblue%an%Cgreen%d %Creset%s' --date=short $argv 
+
       - name: Generate artifacts
         run: |
           mkdir -p output
