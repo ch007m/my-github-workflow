@@ -10,6 +10,16 @@ fi
 VALUE="$1"
 BRANCH="test/${VALUE}-test"
 
+# Close previous test PRs and delete their branches
+echo "Cleaning up previous test PRs and branches..."
+gh pr list --repo "$(gh repo view --json nameWithOwner --jq '.nameWithOwner')" \
+  --state open --json number,headRefName \
+  --jq '.[] | select(.headRefName | startswith("test/")) | "\(.number) \(.headRefName)"' \
+| while read -r pr_number branch_name; do
+    echo "  Closing PR #$pr_number ($branch_name)"
+    gh pr close "$pr_number" --delete-branch 2>/dev/null || true
+  done
+
 git checkout main
 git pull origin main
 git checkout -b "$BRANCH"
