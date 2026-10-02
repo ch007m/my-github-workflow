@@ -12,6 +12,38 @@ VALUE="$1"
 TARGET="$2"
 BRANCH="test/${VALUE}"
 
+show_status() {
+  local label="$1"
+  local pr="$2"
+  local repo="$3"
+  local sha="$4"
+
+  echo ""
+  echo "==========================================="
+  echo " $label"
+  echo "==========================================="
+
+  echo ""
+  echo "Labels: $(gh pr view "$pr" --json labels --jq '[.labels[].name] | join(", ") // "none"')"
+  echo "Mergeable: $(gh pr view "$pr" --json mergeable --jq '.mergeable')"
+
+  echo ""
+  echo "Workflow runs:"
+  gh api "repos/$repo/actions/runs?head_sha=$sha" \
+    --jq '.workflow_runs[] | "  #\(.run_number) \(.name) [\(.status)/\(.conclusion // "—")] \(.html_url)"' \
+    2>/dev/null || echo "  None"
+
+  echo ""
+  echo "Jobs:"
+  gh pr checks "$pr" --repo "$repo" 2>/dev/null || echo "  No checks reported yet"
+
+  echo ""
+  echo "Commit statuses:"
+  gh api "repos/$repo/commits/$sha/status" \
+    --jq '.statuses[] | "  \(.context): \(.state) — \(.description)"' \
+    2>/dev/null || echo "  None"
+}
+
 # Close test PR
 echo "Cleaning up test PR and branches..."
 gh pr list --repo "$(gh repo view --json nameWithOwner --jq '.nameWithOwner')" \
@@ -50,36 +82,16 @@ git push -u origin "$BRANCH"
 PR_URL=$(gh pr create --title "Test $VALUE" --body "Test $VALUE" 2>&1)
 PR_NUMBER=$(echo "$PR_URL" | grep -o '[0-9]*$')
 REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+SHA=$(gh pr view "$PR_NUMBER" --json headRefOid --jq '.headRefOid')
 
 echo ""
-echo "==========================================="
 echo "PR created: $PR_URL"
-echo "==========================================="
 
-# Show initial status
 echo ""
-echo "--- Initial PR status (before label) ---"
-echo "Labels: $(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(", ") // "none"')"
-echo "Mergeable: $(gh pr view "$PR_NUMBER" --json mergeable --jq '.mergeable')"
-echo ""
-echo "Checks:"
-gh pr checks "$PR_NUMBER" --repo "$REPO" 2>/dev/null || echo "  No checks reported yet"
-
-# Wait for checks to appear
-echo ""
-echo "Waiting 15s for initial checks to run..."
+echo "Waiting 15s for initial checks..."
 sleep 15
 
-echo ""
-echo "--- PR status (before label, after initial checks) ---"
-echo "Checks:"
-gh pr checks "$PR_NUMBER" --repo "$REPO" 2>/dev/null || echo "  No checks reported yet"
-
-# Show commit statuses
-SHA=$(gh pr view "$PR_NUMBER" --json headRefOid --jq '.headRefOid')
-echo ""
-echo "Commit statuses:"
-gh api "repos/$REPO/commits/$SHA/status" --jq '.statuses[] | "  \(.context): \(.state) - \(.description)"' 2>/dev/null || echo "  None"
+show_status "BEFORE LABEL" "$PR_NUMBER" "$REPO" "$SHA"
 
 # Prompt to apply label
 echo ""
@@ -90,46 +102,28 @@ echo "==========================================="
 echo ""
 read -p "Press ENTER after applying the label to continue monitoring..." _
 
-# Show status after label
 echo ""
-echo "--- PR status (after label) ---"
-echo "Labels: $(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(", ") // "none"')"
-
-echo ""
-echo "Waiting for workflows to start..."
+echo "Waiting 10s for workflows to start..."
 sleep 10
 
-# Poll checks until they complete (max 2 minutes)
-for i in $(seq 1 12); do
-  echo ""
-  echo "--- Check status (attempt $i/12) ---"
-  gh pr checks "$PR_NUMBER" --repo "$REPO" 2>/dev/null || echo "  No checks reported yet"
+# Poll until all checks complete (max 3 minutes)
+for i in $(seq 1 18); do
+  show_status "AFTER LABEL (poll $i/18)" "$PR_NUMBER" "$REPO" "$SHA"
 
-  echo ""
-  echo "Commit statuses:"
-  gh api "repos/$REPO/commits/$SHA/status" --jq '.statuses[] | "  \(.context): \(.state) - \(.description)"' 2>/dev/null || echo "  None"
-
-  # Stop polling if all checks are done
   PENDING=$(gh pr checks "$PR_NUMBER" --repo "$REPO" 2>/dev/null | grep -c "pending\|running" || true)
-  if [ "$PENDING" -eq 0 ] 2>/dev/null; then
+  PENDING_STATUS=$(gh api "repos/$REPO/commits/$SHA/status" --jq '[.statuses[] | select(.state=="pending")] | length' 2>/dev/null || echo "0")
+
+  if [ "$PENDING" -eq 0 ] && [ "$PENDING_STATUS" -eq 0 ] 2>/dev/null; then
     echo ""
-    echo "All checks completed!"
+    echo "All checks and statuses completed!"
     break
   fi
 
+  echo ""
   echo "Waiting 10s..."
   sleep 10
 done
 
-echo ""
-echo "--- Final PR status ---"
-echo "Labels: $(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(", ")')"
-echo "Mergeable: $(gh pr view "$PR_NUMBER" --json mergeable --jq '.mergeable')"
-echo ""
-echo "Checks:"
-gh pr checks "$PR_NUMBER" --repo "$REPO" 2>/dev/null
-echo ""
-echo "Commit statuses:"
-gh api "repos/$REPO/commits/$SHA/status" --jq '.statuses[] | "  \(.context): \(.state) - \(.description)"' 2>/dev/null || echo "  None"
+show_status "FINAL STATUS" "$PR_NUMBER" "$REPO" "$SHA"
 
 git checkout main
