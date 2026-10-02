@@ -12,15 +12,15 @@ VALUE="$1"
 TARGET="$2"
 BRANCH="test/${VALUE}"
 
-# Close previous test PRs and delete their branches
-echo "Cleaning up previous test PRs and branches..."
+# Close test PR and delete the branch
+echo "Cleaning up test PR and branche..."
 gh pr list --repo "$(gh repo view --json nameWithOwner --jq '.nameWithOwner')" \
   --state open --json number,headRefName \
   --jq '.[] | select(.headRefName | startswith("test/")) | "\(.number) \(.headRefName)"' \
 | while read -r pr_number branch_name; do
     echo "  Closing PR #$pr_number ($branch_name)"
     gh pr close "$pr_number" --delete-branch 2>/dev/null || true
-    git delete branch -D "$pr_number"
+    git delete branch -D $BRANCH
   done
 
 git checkout main
