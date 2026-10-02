@@ -1,36 +1,25 @@
-name: Workflow 4 (Post-Export Processing)
+name: Workflow 4 (Export and Process Artifacts)
 
 on:
-  workflow_run:
-    workflows: ["Workflow 3 (Export Artifacts)"]
-    types:
-      - completed
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
   statuses: write
-  actions: read
   pull-requests: write
 
 jobs:
+  export:
+    uses: ./.github/workflows/workflow-3.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+
   process:
     name: Process Exported Artifacts
+    needs: export
     runs-on: ubuntu-latest
-    if: >
-      github.repository_owner == 'ch007m' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request'
     steps:
-      - name: Get PR number
-        id: pr
-        run: |
-          PR_NUMBER=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/pulls" \
-            --jq '.[0].number // empty')
-          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-
       - name: Set pending status
         run: |
           gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
@@ -40,26 +29,23 @@ jobs:
             -f description="Processing exported artifacts..."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
 
       - name: Comment processing started
         run: |
-          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "$GITHUB_REPOSITORY" \
             --body "⏳ **Post-export processing started** — [View run](https://github.com/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }})"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
 
-      - name: Download artifacts from workflow 3
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: pr-artifacts
           path: downloaded/
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Process artifacts
-        id: process
         run: |
           echo "=== Downloaded artifacts ==="
           cat downloaded/pr-info.txt
@@ -76,12 +62,12 @@ jobs:
             -f state=success \
             -f context=post-export-processing \
             -f description="Artifact processing completed"
-          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "$GITHUB_REPOSITORY" \
             --body "✅ **Post-export processing completed** — [View run](https://github.com/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }})"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
 
       - name: Set final status (failure)
         if: failure()
@@ -91,9 +77,9 @@ jobs:
             -f state=failure \
             -f context=post-export-processing \
             -f description="Artifact processing failed"
-          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "$GITHUB_REPOSITORY" \
             --body "❌ **Post-export processing failed** — [View run](https://github.com/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }})"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
