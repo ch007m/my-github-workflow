@@ -10,7 +10,14 @@ permissions:
   pull-requests: write
 
 jobs:
+  build-jar:
+    if: >
+      github.repository_owner == 'ch007m' &&
+      contains(github.event.pull_request.labels.*.name, 'status: to-test')
+    uses: ./.github/workflows/build-jar.yml
+
   export:
+    needs: build-jar
     if: >
       github.repository_owner == 'ch007m' &&
       contains(github.event.pull_request.labels.*.name, 'status: to-test')
@@ -18,15 +25,9 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.sha }}
 
-  build-jar:
-    if: >
-      github.repository_owner == 'ch007m' &&
-      contains(github.event.pull_request.labels.*.name, 'status: to-test')
-    uses: ./.github/workflows/build-jar.yml
-
   process:
-    name: Process Exported Artifacts
-    needs: [export, build-jar]
+    name: Process PR's artifacts
+    needs: [build-jar,export]
     if: needs.export.outputs.skills_changed == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -74,7 +75,7 @@ jobs:
       - name: Check results
         run: |
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'status: to-test') }}" != "true" ]]; then
-            echo "Label 'status: to-test' is required to merge"
+            echo "Label 'status: to-test' is required to run the tests before to merge"
             exit 1
           fi
           if [[ "${{ needs.export.result }}" == "failure" || "${{ needs.build-jar.result }}" == "failure" ]]; then
