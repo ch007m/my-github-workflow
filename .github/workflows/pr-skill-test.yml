@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   instructions:
-    name: Set PR instructions
+    name: Set instructions
     if: github.event.action == 'opened'
     runs-on: ubuntu-latest
     steps:
