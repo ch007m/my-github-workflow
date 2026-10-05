@@ -6,6 +6,7 @@ on:
 
 env:
   JAVA_VERSION: '21'
+  ACP_AGENT: ibm-bob
 
 permissions:
   contents: read
@@ -80,7 +81,7 @@ jobs:
         with:
           java_version: ${{ env.JAVA_VERSION }}
           smallrye_acp_version: '0.2.0'
-          agents: ibm-bob #claude-acp
+          agents: ${{ env.ACP_AGENT }}
           bobshell_version: '2.0.5'
           registry_file: ./.github/actions/acp-agent-action/ibm-bob-acp-registry.json
 
@@ -106,7 +107,7 @@ jobs:
             skill_name=$(basename "$skill_dir")
 
             echo "--- Running skill: ${skill_name} (${skill_path}) ---"
-            if acp run -a claude-acp -s "${skill_path}" -p "Say hello" -o json; then
+            if acp run -a ${{ env.ACP_AGENT }} -s "${skill_path}" -p "Say hello" -o json; then
               echo "✅ ${skill_name} passed"
             else
               echo "::error title=SKILL Test::${skill_name} failed (${skill_path})"
