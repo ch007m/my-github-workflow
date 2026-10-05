@@ -81,8 +81,8 @@ jobs:
           java_version: ${{ env.JAVA_VERSION }}
           smallrye_acp_version: '0.2.0'
           agents: claude-acp
-          #bobshell_version: '2.0.5'
-          #registry_file: ./.github/actions/acp-agent-action/ibm-bob-acp-registry.json
+          # bobshell_version: '2.0.5'
+          # registry_file: ./.github/actions/acp-agent-action/ibm-bob-acp-registry.json
 
       #- name: Start HelloWorld JAR
       #  run: |
@@ -94,18 +94,26 @@ jobs:
           set -euo pipefail
 
           echo "=== Changed SKILL files ==="
+          cat skills/changed-skills.txt
+          echo ""
 
-          skill_dir=$(dirname "$skill_path")
-          skill_name=$(basename "$skill_dir")
+          failed=0
 
-          echo "--- Running skill: ${skill_name} (${skill_path}) ---"
-          if acp run -a claude-acp -s "${skill_path}" -p "Say hello" -o json; then
+          while IFS= read -r skill_path; do
+            [[ -z "$skill_path" ]] && continue
+
+            skill_dir=$(dirname "$skill_path")
+            skill_name=$(basename "$skill_dir")
+
+            echo "--- Running skill: ${skill_name} (${skill_path}) ---"
+            if acp run -a claude-acp -s "${skill_path}" -p "Say hello" -o json; then
               echo "✅ ${skill_name} passed"
-          else
+            else
               echo "::error title=SKILL Test::${skill_name} failed (${skill_path})"
               failed=$((failed + 1))
-          fi
-          echo ""
+            fi
+            echo ""
+          done < skills/changed-skills.txt
 
           if [[ "$failed" -gt 0 ]]; then
             echo "::error title=SKILL Tests::${failed} skill test(s) failed"
