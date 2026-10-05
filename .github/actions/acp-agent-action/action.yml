@@ -1,0 +1,93 @@
+name: Install ACP Agent(s)
+description: Install Smallrye ACP client and one or more ACP agents, optionally using a local registry file.
+
+inputs:
+  smallrye_acp_version:
+    description: Version of Smallrye ACP Java client.
+    required: true
+  agents:
+    description: >
+      Comma-separated list of agent IDs to install (e.g., "claude-acp" or "claude-acp,ibm-bob").
+    required: true
+  registry_file:
+    description: >
+      Path to a local registry template file (JSON/YAML) used with envsubst.
+      When omitted, agents are installed from the default public registry.
+    required: true
+  bobshell_version:
+    description: Version of Bob Shell v2 (only required when installing ibm-bob with a registry file).
+    required: false
+    default: ''
+  bobshell_base_url:
+    description: Base URL for Bob Shell v2 packages (version is appended automatically).
+    required: false
+    default: https://s3.us-south.cloud-object-storage.appdomain.cloud/bob-shell
+
+runs:
+  using: composite
+  steps:
+    - name: Install JBang
+      uses: jbangdev/setup-jbang@main
+
+    - name: Install Smallrye ACP client
+      shell: bash
+      run: |
+        set -euo pipefail
+        jbang app install --name acp "io.smallrye.ai:acp-java-client:${{ inputs.smallrye_acp_version }}:runner"
+        acp -h
+
+    - name: Resolve registry template
+      if: inputs.registry_file != ''
+      shell: bash
+      env:
+        BOBSHELL_VERSION: ${{ inputs.bobshell_version }}
+        BOBSHELL_BASE_URL: ${{ inputs.bobshell_base_url }}
+      run: |
+        set -euo pipefail
+
+        registry_template="${{ inputs.registry_file }}"
+        if [[ ! -f "${registry_template}" ]]; then
+          echo "::error title=ACP Registry::Registry file not found: ${registry_template}"
+          exit 1
+        fi
+
+        export BOBSHELL_INSTALL_URL="${BOBSHELL_BASE_URL}/bobshell-${BOBSHELL_VERSION}.tgz"
+        resolved_file="${RUNNER_TEMP}/acp-registry.json"
+        envsubst < "${registry_template}" > "${resolved_file}"
+
+        echo "ACP_RESOLVED_REGISTRY=${resolved_file}" >> "$GITHUB_ENV"
+        echo "Resolved registry written to ${resolved_file}"
+
+    - name: Install and verify ACP agents
+      shell: bash
+      env:
+        AGENTS: ${{ inputs.agents }}
+        REGISTRY_FILE: ${{ inputs.registry_file }}
+      run: |
+        set -euo pipefail
+
+        IFS=',' read -ra AGENT_LIST <<< "$AGENTS"
+
+        for agent in "${AGENT_LIST[@]}"; do
+          agent=$(echo "$agent" | xargs)
+
+          if [[ -n "$REGISTRY_FILE" ]]; then
+            echo "Installing agent '${agent}' from local registry..."
+            acp registry install --registry-file "${ACP_RESOLVED_REGISTRY}" "${agent}"
+          else
+            echo "Installing agent '${agent}' from default registry..."
+            acp registry install "${agent}"
+          fi
+
+          echo "Verifying '${agent}' installation..."
+          if acp registry list | grep -q "${agent}"; then
+            echo "✅ ${agent} installed successfully"
+          else
+            echo "::error title=ACP Agent Install::${agent} not found after installation"
+            exit 1
+          fi
+        done
+
+        echo ""
+        echo "=== Installed ACP agents ==="
+        acp registry list

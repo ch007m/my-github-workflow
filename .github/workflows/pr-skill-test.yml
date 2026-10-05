@@ -57,6 +57,9 @@ jobs:
     if: needs.export.outputs.skills_changed == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
       - name: Download SKILL artifacts
         uses: actions/download-artifact@v4
         with:
@@ -69,26 +72,49 @@ jobs:
           name: helloworld-jar
           path: jar/
 
+      - name: Install Smallrye ACP and agents
+        uses: ./.github/actions/acp-agent-action
+        with:
+          smallrye_acp_version: '0.2.0'
+          #bobshell_version: '2.0.5'
+          agents: claude-acp
+          registry_file: ./.github/actions/acp-agent-action/ibm-bob-acp-registry.json
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Run HelloWorld JAR
-        run: java -jar jar/helloworld-1.0-SNAPSHOT.jar
+      #- name: Start HelloWorld JAR
+      #  run: |
+      #    set -euo pipefail
+      #    java -jar jar/helloworld-1.0-SNAPSHOT.jar
 
       - name: Process SKILL artifacts
         run: |
+          set -euo pipefail
+
           echo "=== Changed SKILL files ==="
-          cat skills/changed-skills.txt
+
+          skill_dir=$(dirname "$skill_path")
+          skill_name=$(basename "$skill_dir")
+
+          echo "--- Running skill: ${skill_name} (${skill_path}) ---"
+          if acp run -a claude-acp -s "${skill_path}" -p "Say hello" -o json; then
+              echo "✅ ${skill_name} passed"
+          else
+              echo "::error title=SKILL Test::${skill_name} failed (${skill_path})"
+              failed=$((failed + 1))
+          fi
           echo ""
-          echo "=== PR info ==="
-          cat skills/pr-info.txt
-          cat skills/report.txt
-          echo ""
-          echo "=== Processing SKILL artifacts ..."
-          echo "Post-export processing completed successfully!"
+
+          if [[ "$failed" -gt 0 ]]; then
+            echo "::error title=SKILL Tests::${failed} skill test(s) failed"
+            exit 1
+          fi
+
+          echo "All skill tests passed!"
         env:
           FOO: ${{ secrets.FOO }}
 
