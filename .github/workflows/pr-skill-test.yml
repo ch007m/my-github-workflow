@@ -46,8 +46,6 @@ jobs:
       github.repository_owner == 'ch007m' &&
       contains(github.event.pull_request.labels.*.name, 'status: to-test')
     uses: ./.github/workflows/build-jar.yml
-    with:
-      java_version: ${{ env.JAVA_VERSION }}
 
   export:
     needs: build
