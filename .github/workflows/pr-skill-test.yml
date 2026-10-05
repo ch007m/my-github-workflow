@@ -80,9 +80,9 @@ jobs:
         with:
           java_version: ${{ env.JAVA_VERSION }}
           smallrye_acp_version: '0.2.0'
-          #bobshell_version: '2.0.5'
           agents: claude-acp
-          registry_file: ./.github/actions/acp-agent-action/ibm-bob-acp-registry.json
+          #bobshell_version: '2.0.5'
+          #registry_file: ./.github/actions/acp-agent-action/ibm-bob-acp-registry.json
 
       #- name: Start HelloWorld JAR
       #  run: |
