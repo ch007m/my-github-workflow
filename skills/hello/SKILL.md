@@ -1,6 +1,6 @@
 ---
 name: hello-world
-description: Use when user is saying Hello, HelloWorld.
+description: Use when user is saying Hello, HelloWorld, Good Morning.
 ---
 
 # Instructions
