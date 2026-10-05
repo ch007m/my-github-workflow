@@ -2,6 +2,10 @@ name: Install ACP Agent(s)
 description: Install Smallrye ACP client and one or more ACP agents, optionally using a local registry file.
 
 inputs:
+  java_version:
+    description: JDK version to use.
+    required: false
+    default: '21'
   smallrye_acp_version:
     description: Version of Smallrye ACP Java client.
     required: true
@@ -26,6 +30,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java_version }}
+        distribution: 'temurin'
+
     - name: Install JBang
       uses: jbangdev/setup-jbang@main
 
