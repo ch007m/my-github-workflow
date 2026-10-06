@@ -104,3 +104,12 @@ public class MavenMcpServer {
 }
 ```
 To execute the command, the SKILL must include a statement telling to perform: "Use the `maven_compile` tool ..."
+
+When you will execute the ACP command, then you must see as messages:
+```shell
+Starting the AI conversation ...
+Let me read the skill file first.
+Now let me load the `maven_compile` MCP tool schema.
+Running Maven compilation on the project.
+**BUILD SUCCESS** — the `helloworld` project compiled successfully (1 source file, Java 21, 0.465s).
+```
