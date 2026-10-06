@@ -103,4 +103,4 @@ public class MavenMcpServer {
     }
 }
 ```
-To execute the command, the SKILL must include a statement telling to perform: `Use the `maven_compile` tool ...`
+To execute the command, the SKILL must include a statement telling to perform: "Use the `maven_compile` tool ..."
