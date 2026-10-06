@@ -12,7 +12,7 @@ acp run \
   -o json
 ```
 
-This command will use jbang to run a MCP Server exposing as function/tool: `maven_compile`
+This command will use jbang and mcp java [sdk](https://github.com/modelcontextprotocol/java-sdk) to run a MCP Server exposing as function/tool: `maven_compile`
 
 ```java
 ///usr/bin/env jbang "$0" "$@" ; exit $?
