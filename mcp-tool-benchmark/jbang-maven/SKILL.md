@@ -5,7 +5,7 @@ description: Compile a Java project using the maven_compile MCP tool
 
 # Instructions
 
-- Use the `maven_compile` tool to compile the project at root of the git repository: `/Users/cmoullia/code/ch007m/my-github-workflow/pom.xml`
+- Use the `maven_compile` tool to compile the project at root of the git repository: `pom.xml`
 - If compilation succeeds, report "BUILD SUCCESS"
 - If compilation fails, extract the first error from the output and report it
 
