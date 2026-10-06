@@ -1,0 +1,4 @@
+Scenario|Elapsed|Tokens|Tool Calls|Cost
+1. MCP Server|25s|25780|12|0.1502475 USD
+2. Skill with explicit commands (no MCP)|25s|26097|14|0.1297095 USD
+3. Agent tools (no MCP)|22s|25648|12|0.10900449999999999 USD
