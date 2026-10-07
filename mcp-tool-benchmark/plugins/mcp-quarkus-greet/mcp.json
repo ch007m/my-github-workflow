@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "quarkus-greeting-stdio": {
+      "type": "stdio",
+      "command": "java",
+      "args": ["-jar", "${PLUGIN_ROOT}/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"],
+      "env": {
+        "JAVA_HOME": "${JAVA_HOME}"
+      },
+      "cwd": "${PLUGIN_ROOT}"
+    },
+    "quarkus-greeting-http": {
+      "type": "streamable-http",
+      "url": "http://localhost:8080/mcp"
+    }
+  }
+}

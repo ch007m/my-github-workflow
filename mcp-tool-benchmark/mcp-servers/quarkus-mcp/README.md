@@ -29,12 +29,15 @@ Next, start ACP with Quarkus MCP server using either stdio, HTTP
 acp run \
   -a claude-acp \
   --backup no \
-  -s ./mcp-tool-benchmark/mcp-servers/quarkus-mcp/SKILL.md \
-  --mcp-server-config '{"type":"stdio","name":"migration-tools","command":"java","args":["-jar", "./mcp-tool-benchmark/mcp-servers/quarkus-mcp-stdio/target/mcp-stdio-quickstart-1.0.0-SNAPSHOT-runner.jar"]}' \
+  -s ./mcp-tool-benchmark/skills/hello/SKILL.md \
+  --mcp-server-config '{"type":"stdio","name":"migration-tools","command":"java","args":["-jar", "./mcp-tool-benchmark/mcp-servers/quarkus-mcp/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"]}' \
   -p "Say Hello to Charles" \
   -o json
+...
+Starting the AI conversation ...
+I'll create a HELLO.md file with some beautiful hello world messages for you, Charles.
+Created `mcp-tool-benchmark/skills/hello/HELLO.md` with five hello world messages in different languages. Each one comes with a little wish for your day, Charles!
 ```
-This is horribly slow to get a response. Why: I don't know ? Perhaps due to the fact that both use same: stdio !
 
 2. HTTP (server already running)
 ```shell

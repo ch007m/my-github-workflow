@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "jbang-maven-compiler",
+  "version": "1.0.0",
+  "description": "JBang MCP server exposing a Maven compile tool",
+  "author": {
+    "name": "Charles Moulliard",
+    "url": "https://github.com/ch007m"
+  },
+  "repository": "https://github.com/ch007m/my-github-workflow",
+  "license": "Apache-2.0",
+  "keywords": ["jbang", "mcp", "maven", "compiler"]
+}
