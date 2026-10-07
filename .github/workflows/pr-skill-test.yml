@@ -125,6 +125,63 @@ jobs:
         env:
           BOBSHELL_API_KEY: ${{ secrets.BOBSHELL_API_KEY }}
 
+      - name: Report session metrics
+        if: always()
+        run: |
+          set -euo pipefail
+
+          DB="$HOME/.bob/db/bob.db"
+
+          if [[ ! -f "$DB" ]]; then
+            echo "No Bob DB found — skipping metrics"
+            exit 0
+          fi
+
+          SESSION_ID=$(sqlite3 "$DB" "
+            SELECT id FROM tasks
+            WHERE costs IS NOT NULL
+              AND json_extract(costs, '\$.cost') > 0
+              AND first_message IS NOT NULL
+            ORDER BY created_at DESC
+            LIMIT 1;
+          ")
+
+          if [[ -z "$SESSION_ID" ]]; then
+            echo "No session with cost data found"
+            exit 0
+          fi
+
+          echo "SESSION_ID=$SESSION_ID" >> "$GITHUB_ENV"
+          echo "Session ID: $SESSION_ID"
+
+          {
+            echo "### Session Metrics"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|--------|-------|"
+
+            sqlite3 "$DB" "
+              SELECT
+                printf('%ds', (updated_at - created_at) / 1000),
+                json_extract(costs, '\$.input'),
+                json_extract(costs, '\$.output'),
+                json_extract(costs, '\$.cacheRead'),
+                json_extract(costs, '\$.cacheWrite'),
+                printf('\$%.4f', json_extract(costs, '\$.cost')),
+                json_extract(costs, '\$.contextTokens')
+              FROM tasks
+              WHERE id = '$SESSION_ID';
+            " | while IFS='|' read -r duration input output cache_read cache_write cost ctx; do
+              echo "| Duration | $duration |"
+              echo "| Input tokens | $input |"
+              echo "| Output tokens | $output |"
+              echo "| Cache read | $cache_read |"
+              echo "| Cache write | $cache_write |"
+              echo "| Cost (USD) | $cost |"
+              echo "| Context tokens | $ctx |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
   pipeline:
     name: AI Test
     needs: [export, build, process]
