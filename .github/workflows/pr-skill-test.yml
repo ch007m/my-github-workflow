@@ -152,34 +152,50 @@ jobs:
           fi
 
           echo "SESSION_ID=$SESSION_ID" >> "$GITHUB_ENV"
-          echo "Session ID: $SESSION_ID"
+
+          METRICS=$(sqlite3 "$DB" "
+            SELECT
+              printf('%ds', (updated_at - created_at) / 1000),
+              COALESCE(json_extract(costs, '\$.input'), 'n/a'),
+              COALESCE(json_extract(costs, '\$.output'), 'n/a'),
+              COALESCE(json_extract(costs, '\$.cacheRead'), 'n/a'),
+              COALESCE(json_extract(costs, '\$.cacheWrite'), 'n/a'),
+              printf('\$%.4f', json_extract(costs, '\$.cost')),
+              COALESCE(json_extract(costs, '\$.contextTokens'), 'n/a')
+            FROM tasks
+            WHERE id = '$SESSION_ID';
+          ")
+
+          if [[ -z "$METRICS" ]]; then
+            echo "No metrics found for session $SESSION_ID"
+            exit 0
+          fi
+
+          IFS='|' read -r duration input output cache_read cache_write cost ctx <<< "$METRICS"
+
+          echo "=== Session Metrics ==="
+          echo "Session ID:     $SESSION_ID"
+          echo "Duration:       $duration"
+          echo "Input tokens:   $input"
+          echo "Output tokens:  $output"
+          echo "Cache read:     $cache_read"
+          echo "Cache write:    $cache_write"
+          echo "Cost (USD):     $cost"
+          echo "Context tokens: $ctx"
 
           {
             echo "### Session Metrics"
             echo ""
             echo "| Metric | Value |"
             echo "|--------|-------|"
-
-            sqlite3 "$DB" "
-              SELECT
-                printf('%ds', (updated_at - created_at) / 1000),
-                json_extract(costs, '\$.input'),
-                json_extract(costs, '\$.output'),
-                json_extract(costs, '\$.cacheRead'),
-                json_extract(costs, '\$.cacheWrite'),
-                printf('\$%.4f', json_extract(costs, '\$.cost')),
-                json_extract(costs, '\$.contextTokens')
-              FROM tasks
-              WHERE id = '$SESSION_ID';
-            " | while IFS='|' read -r duration input output cache_read cache_write cost ctx; do
-              echo "| Duration | $duration |"
-              echo "| Input tokens | $input |"
-              echo "| Output tokens | $output |"
-              echo "| Cache read | $cache_read |"
-              echo "| Cache write | $cache_write |"
-              echo "| Cost (USD) | $cost |"
-              echo "| Context tokens | $ctx |"
-            done
+            echo "| Session ID | \`$SESSION_ID\` |"
+            echo "| Duration | $duration |"
+            echo "| Input tokens | $input |"
+            echo "| Output tokens | $output |"
+            echo "| Cache read | $cache_read |"
+            echo "| Cache write | $cache_write |"
+            echo "| Cost (USD) | $cost |"
+            echo "| Context tokens | $ctx |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   pipeline:
