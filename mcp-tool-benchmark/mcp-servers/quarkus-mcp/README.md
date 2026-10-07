@@ -1,6 +1,6 @@
 # MCP Greeting Tool
 
-Before t execute the following commands, you must install the Smallrye ACP Client:
+Before to execute the following commands, you must install the Smallrye ACP Client:
 ```shell
 jbang app install --name acp io.smallrye.ai:acp-java-client:0.2.1:runner
 
