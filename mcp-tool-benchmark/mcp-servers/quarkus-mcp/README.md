@@ -24,7 +24,7 @@ acp registry install claude-acp
 
 Next, start ACP with Quarkus MCP server using either stdio, HTTP
 
-1. Stdio
+## Stdio
 ```shell
 acp run \
   -a claude-acp \
@@ -39,7 +39,7 @@ I'll create a HELLO.md file with some beautiful hello world messages for you, Ch
 Created `mcp-tool-benchmark/skills/hello/HELLO.md` with five hello world messages in different languages. Each one comes with a little wish for your day, Charles!
 ```
 
-2. HTTP (server already running)
+## HTTP (server already running)
 ```shell
 acp run \
   -a claude-acp \
@@ -50,7 +50,7 @@ acp run \
   -o json
 ```
 
-3. HTTP (start server in background first)
+## HTTP (start server in background first)
 
 Start the Quarkus MCP HTTP server, wait for it to be ready, then run the acp command:
 ```shell
