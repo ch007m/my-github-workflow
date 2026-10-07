@@ -7,8 +7,8 @@ description: Use when user is saying Hello, HelloWorld.
 
 - Create some beautiful hello world messages
 <<<<<<< Updated upstream
-- Max 50 messages
+- Max 666 messages
 =======
-- Max 5 messages
+- Max 666 messages
 >>>>>>> Stashed changes
 - Add a HELLO.md messages
