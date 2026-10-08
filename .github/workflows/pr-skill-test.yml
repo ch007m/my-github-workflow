@@ -7,6 +7,8 @@ on:
 env:
   JAVA_VERSION: '21'
   ACP_AGENT: ibm-bob
+  SMALLRYE_ACP_VERSION: '0.2.1'
+  IBM_BOB_VERSION: '2.0.5'
 
 permissions:
   contents: read
@@ -42,7 +44,7 @@ jobs:
             });
 
   build:
-    name: Build HelloWorld application
+    name: Build Quarkus MCP server
     if: >
       github.repository_owner == 'ch007m' &&
       contains(github.event.pull_request.labels.*.name, 'status: to-test')
@@ -73,16 +75,16 @@ jobs:
       - name: Download JAR
         uses: actions/download-artifact@v4
         with:
-          name: helloworld-jar
+          name: quarkus-mcp-server
           path: jar/
 
       - name: Install Smallrye ACP and agents
         uses: ./.github/actions/acp-agent-action
         with:
           java_version: ${{ env.JAVA_VERSION }}
-          smallrye_acp_version: '0.2.0'
+          smallrye_acp_version: ${{ env.SMALLRYE_ACP_VERSION }}
           agents: ${{ env.ACP_AGENT }}
-          bobshell_version: '2.0.5'
+          bobshell_version: ${{ env.IBM_BOB_VERSION }}
           registry_file: ./.github/actions/acp-agent-action/ibm-bob-acp-registry.json
 
       #- name: Start HelloWorld JAR
@@ -107,7 +109,12 @@ jobs:
             skill_name=$(basename "$skill_dir")
 
             echo "--- Running skill: ${skill_name} (${skill_path}) ---"
-            if acp run -a ${{ env.ACP_AGENT }} -s "${skill_path}" -p "Say hello" -o json; then
+            if acp run \
+              -a ${{ env.ACP_AGENT }} \
+              --backup no \
+              -s "${skill_path}" \
+              --mcp-server-config '{"type":"stdio","name":"greet-tools","command":"java","args":["-jar","jar/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"]}' \
+              -p "Greet"; then
               echo "✅ ${skill_name} passed"
             else
               echo "::error title=SKILL Test::${skill_name} failed (${skill_path})"

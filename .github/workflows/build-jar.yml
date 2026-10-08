@@ -26,10 +26,10 @@ jobs:
           distribution: 'temurin'
 
       - name: Build with Maven
-        run: mvn -B package -DskipTests
+        run: mvn -B package -f mcp/servers/quarkus-mcp/pom.xml
 
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
-          name: helloworld-jar
-          path: target/helloworld-1.0-SNAPSHOT.jar
+          name: quarkus-mcp-server
+          path: mcp/servers/quarkus-mcp/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar
