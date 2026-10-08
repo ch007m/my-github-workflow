@@ -22,10 +22,16 @@ autohand                  0.2.1        npx            Autohand Code - AI coding 
 acp registry install claude-acp
 ```
 
-Next, start ACP with Quarkus MCP server using either stdio, HTTP
+Compile the Quarkus MCP server first
+```shell
+mvn package -f mcp/servers/quarkus-mcp/pom.xml
+```
+
+Next, launch the ACP client and specify the Quarkus MCP server using as mode: stdio, HTTP
 
 ## Stdio
 ```shell
+// at the root of the GitHub repository
 acp run \
   -a claude-acp \
   --backup no \
@@ -33,7 +39,6 @@ acp run \
   --mcp-server-config '{"type":"stdio","name":"greet-tools","command":"java","args":["-jar", "./mcp/servers/quarkus-mcp/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"]}' \
   -p "Greet"
 ...
-Starting the AI conversation ...
 Starting the AI conversation ...
 Let me load the greeting MCP tools and call them.
 No name was provided, so I'll greet with the defaults.
@@ -47,6 +52,7 @@ Greetings saved to `HELLO.md`. Since no name was provided, the default "Quarkus"
 ```
 Do some additional tests using `-p Greet <first name>`
 ```shell
+// at the root of the GitHub repository
 acp run \
         -a claude-acp \
         --backup no \
