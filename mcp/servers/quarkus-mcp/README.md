@@ -30,13 +30,35 @@ acp run \
   -a claude-acp \
   --backup no \
   -s ./skills/hello/SKILL.md \
-  --mcp-server-config '{"type":"stdio","name":"migration-tools","command":"java","args":["-jar", "./mcp/servers/quarkus-mcp/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"]}' \
-  -p "Say Hello to Charles" \
-  -o json
+  --mcp-server-config '{"type":"stdio","name":"greet-tools","command":"java","args":["-jar", "./mcp/servers/quarkus-mcp/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"]}' \
+  -p "Greet"
 ...
 Starting the AI conversation ...
-I'll create a HELLO.md file with some beautiful hello world messages for you, Charles.
-Created `mcp-tool-benchmark/skills/hello/HELLO.md` with five hello world messages in different languages. Each one comes with a little wish for your day, Charles!
+Starting the AI conversation ...
+Let me load the greeting MCP tools and call them.
+No name was provided, so I'll greet with the defaults.
+Here are your greetings:
+
+- **Hello:** Hello from the Quarkus MCP server, Quarkus! - 08/10/2026 11:06:47
+- **Bye:** Bye from the Quarkus MCP server, Quarkus! - 08/10/2026 11:06:47
+
+Now saving these to `HELLO.md`.
+Greetings saved to `HELLO.md`. Since no name was provided, the default "Quarkus" was used for both the hello and bye greetings.
+```
+Do some additional tests using `-p Greet <first name>`
+```shell
+acp run \
+        -a claude-acp \
+        --backup no \
+        -s ./skills/hello/SKILL.md \
+        --mcp-server-config '{"type":"stdio","name":"greet-tools","command":"java","args":["-jar", "./mcp/servers/quarkus-mcp/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"]}' \
+        -p "Greet Snowdrop"
+Starting the AI conversation ...
+Calling the greeting tools for Snowdrop.
+Here are the greetings for Snowdrop:
+
+- **Hello:** Hello from the Quarkus MCP server, Snowdrop! - 08/10/2026 11:07:25
+- **Bye:** Bye from the Quarkus MCP server, Snowdrop! - 08/10/2026 11:07:25
 ```
 
 ## HTTP (server already running)

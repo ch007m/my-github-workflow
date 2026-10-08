@@ -1,4 +1,7 @@
 .idea/
 ./new-test.sh
 gh_cmd.txt
+
 ./mcp-tool-benchmark/benchmark-results.csv
+./target
+HELLO.md
