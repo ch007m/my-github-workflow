@@ -5,4 +5,4 @@ description: dummy skill used to trigger the CI
 
 # Instructions
 
-- Max 5 messages
+- Max 666 messages
