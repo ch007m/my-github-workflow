@@ -29,8 +29,8 @@ Next, start ACP with Quarkus MCP server using either stdio, HTTP
 acp run \
   -a claude-acp \
   --backup no \
-  -s ./mcp-tool-benchmark/skills/hello/SKILL.md \
-  --mcp-server-config '{"type":"stdio","name":"migration-tools","command":"java","args":["-jar", "./mcp-tool-benchmark/mcp-servers/quarkus-mcp/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"]}' \
+  -s ./skills/hello/SKILL.md \
+  --mcp-server-config '{"type":"stdio","name":"migration-tools","command":"java","args":["-jar", "./mcp/servers/quarkus-mcp/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"]}' \
   -p "Say Hello to Charles" \
   -o json
 ...
@@ -44,7 +44,7 @@ Created `mcp-tool-benchmark/skills/hello/HELLO.md` with five hello world message
 acp run \
   -a claude-acp \
   --backup no \
-  -s ./mcp-tool-benchmark/mcp-servers/quarkus-mcp/SKILL.md \
+  -s ./skills/hello/SKILL.md \
   --mcp-server-config '{"type":"http","name":"migration-tools","url":"http://localhost:8080/mcp"}' \
   -p "Say Hello to Charles" \
   -o json
@@ -55,7 +55,7 @@ acp run \
 Start the Quarkus MCP HTTP server, wait for it to be ready, then run the acp command:
 ```shell
 # Step 1: Start the Quarkus dev server in the background
-cd ./mcp-tool-benchmark/mcp-servers/quarkus-mcp
+cd ./mcp/servers/quarkus-mcp
 ./mvnw quarkus:dev &
 QUARKUS_PID=$!
 cd -
@@ -71,7 +71,7 @@ echo "Quarkus MCP server is ready."
 acp run \
   -a claude-acp \
   --backup no \
-  -s ./mcp-tool-benchmark/mcp-servers/quarkus-mcp/SKILL.md \
+  -s ./skills/hello/SKILL.md \
   --mcp-server-config '{"type":"http","name":"migration-tools","url":"http://localhost:8080/mcp"}' \
   -p "Say Hello to Charles" \
   -o json

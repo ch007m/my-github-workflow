@@ -6,8 +6,8 @@ To call a jbang mcp server able to compile a maven project, execute the followin
 acp run \
   -a claude-acp \
   --backup no \
-  -s ./mcp-tool-benchmark/skills/maven-compile-test/SKILL.md \
-  --mcp-server-config '{"type":"stdio","name":"maven-compiler","command":"jbang","args":["run", "./mcp-tool-benchmark/mcp-servers/jbang-maven/MavenMcpServer.java"]}' \
+  -s ./skills/maven-compile-test/SKILL.md \
+  --mcp-server-config '{"type":"stdio","name":"maven-compiler","command":"jbang","args":["run", "./mcp/servers/jbang-maven/MavenMcpServer.java"]}' \
   -p "Compile the project" \
   -o json
 ```
