@@ -66,6 +66,10 @@ Here are the greetings for Snowdrop:
 - **Hello:** Hello from the Quarkus MCP server, Snowdrop! - 08/10/2026 11:07:25
 - **Bye:** Bye from the Quarkus MCP server, Snowdrop! - 08/10/2026 11:07:25
 ```
+### Examples of prompt
+```shell
+  -p "Read the MCP resource at URI `file:///config.json` from the `greet-tools` server to get the configuration and show it"
+```  
 
 ## HTTP (server already running)
 ```shell

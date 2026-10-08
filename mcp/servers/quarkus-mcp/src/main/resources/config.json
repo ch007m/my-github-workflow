@@ -1,0 +1,9 @@
+{
+  "type": "stdio",
+  "name": "greet-tools",
+  "command": "java",
+  "args": [
+    "-jar",
+    "./mcp/servers/quarkus-mcp/target/quarkus-mcp-1.0.0-SNAPSHOT-runner.jar"
+  ]
+}
